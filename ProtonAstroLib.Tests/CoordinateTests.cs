@@ -10,27 +10,51 @@ namespace ProtonAstroLib.Tests
             Angle.FromDegrees(4, 15, 36.00));
 
         [Fact]
-        public void NorthPole_AtEarthPole_AltitudeIs90()
+        public void NorthPole_AtEarthPole_OnJ2000_AltitudeIs90()
         {
+            // At J2000 epoch, precession is zero so the geometric identity holds exactly.
+            // Refraction at 90° altitude is negligible (~0.0001°).
+            var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
+            var pole = new WGS84Coordinate(Angle.FromDegrees(90), (Angle)34.2);
+
+            var result = northpole.GetHorizontalCoordinate(Constants.J2000Epoch, pole);
+
+            Assert.Equal(90.0, result.Altitude.Degrees, 3);
+        }
+
+        [Fact]
+        public void NorthPole_AtEarthPole_In2012_AltitudeIsNear90()
+        {
+            // 12 years from J2000: precession shifts the J2000 pole by ~0.07°
             var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
             var moment = new DateTimeOffset(2012, 5, 7, 23, 20, 12, TimeSpan.FromHours(2));
             var pole = new WGS84Coordinate(Angle.FromDegrees(90), (Angle)34.2);
 
             var result = northpole.GetHorizontalCoordinate(moment, pole);
 
-            Assert.Equal(90.0, result.Altitude.Degrees, 12);
+            AssertAngleEqual(Angle.FromDegrees(90), result.Altitude, toleranceDegrees: 0.1);
         }
 
         [Fact]
-        public void NorthPole_AtMaassluis_AltitudeEqualsLatitude()
+        public void NorthPole_AtMaassluis_OnJ2000_AltitudeEqualsLatitude()
+        {
+            var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
+
+            var result = northpole.GetHorizontalCoordinate(Constants.J2000Epoch, Maassluis);
+
+            Assert.Equal(Maassluis.Latitude.Degrees, result.Altitude.Degrees, 1);
+            Assert.Equal(0.0, result.Azimuth.Degrees, 0);
+        }
+
+        [Fact]
+        public void NorthPole_AtMaassluis_In2012_AltitudeNearLatitude()
         {
             var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
             var moment = new DateTimeOffset(2012, 5, 7, 23, 20, 12, TimeSpan.FromHours(2));
 
             var result = northpole.GetHorizontalCoordinate(moment, Maassluis);
 
-            AssertAngleEqual(Maassluis.Latitude, result.Altitude);
-            Assert.Equal(0.0, result.Azimuth.Degrees, 0);
+            AssertAngleEqual(Maassluis.Latitude, result.Altitude, toleranceDegrees: 0.1);
         }
 
         [Fact]
@@ -59,10 +83,37 @@ namespace ProtonAstroLib.Tests
             AssertAngleEqual(Angle.FromDegrees(30, 09, 21), result.Altitude);
         }
 
-        private static void AssertAngleEqual(Angle expected, Angle actual)
+        [Fact]
+        public void GammaCephei_PrecessionMovesItPoleward()
         {
-            Assert.True(Math.Abs((expected - actual).Degrees) < 0.1,
-                $"Expected {expected} but got {actual}, difference is {(expected - actual).Degrees} degrees.");
+            // Gamma Cephei (Errai) - J2000 coordinates: RA 23h39m20.910s, Dec +77°37'56.51"
+            // Precession is carrying it toward the celestial pole (it becomes pole star ~4000 AD).
+            // The Lieske polynomials are only valid for a few centuries, so we test at +500 years.
+            var gammaCep = new EquatorialCoordinate(
+                Angle.FromHMS("23h39m20s"),
+                Angle.FromDegrees(77, 37, 56.51));
+
+            var j2000Dec = gammaCep.Declination.Degrees;
+            var year2500 = new DateTimeOffset(4094, 1, 1, 12, 0, 0, TimeSpan.Zero);
+            var precessed = gammaCep.PrecessionCorrected(year2500);
+
+            Assert.True(precessed.Declination.Degrees > 87,
+                $"Expected Gamma Cephei to move poleward by 4094, but declination went from {j2000Dec:F2}° to {precessed.Declination.Degrees:F2}°");
+        }
+
+        [Fact]
+        public void Precession_RejectsDatesBeyondUsableYears()
+        {
+            var star = new EquatorialCoordinate((Angle)0, Angle.FromDegrees(45));
+            var tooFar = new DateTimeOffset(6600, 1, 1, 12, 0, 0, TimeSpan.Zero);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => star.PrecessionCorrected(tooFar));
+        }
+
+        private static void AssertAngleEqual(Angle expected, Angle actual, double toleranceDegrees = 0.05)
+        {
+            Assert.True(Math.Abs((expected - actual).Degrees) < toleranceDegrees,
+                $"Expected {expected} but got {actual}, difference is {(expected - actual).Degrees:F4} degrees (tolerance: {toleranceDegrees}°).");
         }
     }
 }

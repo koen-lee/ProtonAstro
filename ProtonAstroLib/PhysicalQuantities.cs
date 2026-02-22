@@ -168,7 +168,7 @@ namespace ProtonAstroLib
             }
             var D = int.Parse(match.Groups[1].Value);
             var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
-            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value) : 0;
+            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
             return Math.Sign(D) * FromDegrees(Math.Abs(D), M, S);
         }
 
@@ -184,7 +184,7 @@ namespace ProtonAstroLib
             }
             var H = int.Parse(match.Groups[1].Value);
             var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
-            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value) : 0;
+            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
             return FromTime(new TimeSpan(hours: H, minutes: M, seconds: 0).Add(TimeSpan.FromSeconds(S)));
         }
     }
