@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace ProtonAstroLib
 {
@@ -17,7 +14,6 @@ namespace ProtonAstroLib
 
         public Angle Distance(HorizontalCoordinate other)
         {
-            var dist = (Distance)12;
             var altdiff = (double)(Altitude - other.Altitude);
             var azdiff = (double)(Azimuth - other.Azimuth);
             return (Angle)Math.Sqrt(altdiff * altdiff + azdiff * azdiff);
@@ -34,8 +30,6 @@ namespace ProtonAstroLib
 
         public Angle Distance(EquatorialCoordinate other)
         {
-            var dist = (Distance)12;
-
             var altdiff = (double)(RightAscention - other.RightAscention);
             var azdiff = (double)(Declination - other.Declination);
             return (Angle)Math.Sqrt(altdiff * altdiff + azdiff * azdiff);
@@ -71,8 +65,6 @@ namespace ProtonAstroLib
             // Using Atan2 makes sure that the angle from the right quadrant is calculated
             var azimuth = (Angle)Math.Atan2(sinAzCosAlt, cosAzCosAlt);
             var altitude = (Angle)Math.Atan2(sinAlt, radius);
-
-            var test = Pythagoras(radius, sinAlt);
 
             return new HorizontalCoordinate(altitude, azimuth);
         }

@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace ProtonAstroLib
 {
@@ -30,12 +27,6 @@ namespace ProtonAstroLib
             var D = moment.Subtract(Constants.J2000Noon_UT).TotalDays;
             return Angle.FromTime(TimeSpan.FromHours(18.697374558 + 24.06570982441908 * D));
         }
-
-        public static Angle GreenwichSiderialTime(this DateTimeOffset moment)
-        {
-            return moment.GreenwichMeanSiderialTime() + Angle.FromTime(moment.EquationOfTime());
-        }
-
 
         public static TimeSpan EquationOfTime(this DateTimeOffset moment)
         {
