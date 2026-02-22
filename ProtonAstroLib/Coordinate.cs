@@ -2,7 +2,7 @@
 
 namespace ProtonAstroLib
 {
-    public struct WSG84Coordinate(Angle lat, Angle lon)
+    public struct WGS84Coordinate(Angle lat, Angle lon)
     { 
         public readonly Angle Latitude { get; init; } = lat;
         public readonly Angle Longitude { get; init; } = lon;
@@ -44,16 +44,14 @@ namespace ProtonAstroLib
         // All wikipedia below is accessed 7 may 2012
 
         /// <summary>
-        /// Calculates the alt/az coordinates on the specified time and view coordinates
+        /// Calculates the alt/az coordinates on the specified time and observer location
         /// </summary>
-        /// <param name="moment"></param>
-        /// <param name="longitude"></param>
-        /// <param name="latitude"></param>
-        /// <returns></returns>
-        public HorizontalCoordinate GetHorizontalCoordinate(DateTimeOffset moment, Angle longitude, Angle latitude)
+        public HorizontalCoordinate GetHorizontalCoordinate(DateTimeOffset moment, WGS84Coordinate observer)
         {
+            var longitude = observer.Longitude;
+            var latitude = observer.Latitude;
             // Careful reading of http://en.wikipedia.org/wiki/Hour_angle#Relation_with_the_right_ascension
-            var hourangle = moment.GreenwichMeanSiderialTime() - longitude - RightAscention;
+            var hourangle = moment.GreenwichMeanSiderialTime() + longitude - RightAscention;
             // Code adapted from http://en.wikipedia.org/wiki/Horizontal_coordinate_system#equatorial_to_horizontal 20120504
             // This is some sphere trigonometry
             var sinAlt = sin(latitude) * sin(Declination) + cos(latitude) * cos(Declination) * cos(hourangle);

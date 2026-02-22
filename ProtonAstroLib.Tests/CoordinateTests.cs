@@ -5,16 +5,18 @@ namespace ProtonAstroLib.Tests
 {
     public class CoordinateTests
     {
-        private static readonly Angle MaassluisLat = Angle.FromDegrees(51, 55, 11.99);
-        private static readonly Angle MaassluisLon = -Angle.FromDegrees(4, 15, 36.00);
+        private static readonly WGS84Coordinate Maassluis = new(
+            Angle.FromDegrees(51, 55, 11.99),
+            Angle.FromDegrees(4, 15, 36.00));
 
         [Fact]
         public void NorthPole_AtEarthPole_AltitudeIs90()
         {
             var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
             var moment = new DateTimeOffset(2012, 5, 7, 23, 20, 12, TimeSpan.FromHours(2));
+            var pole = new WGS84Coordinate(Angle.FromDegrees(90), (Angle)34.2);
 
-            var result = northpole.GetHorizontalCoordinate(moment, (Angle)34.2, Angle.FromDegrees(90));
+            var result = northpole.GetHorizontalCoordinate(moment, pole);
 
             Assert.Equal(90.0, result.Altitude.Degrees, 12);
         }
@@ -25,9 +27,9 @@ namespace ProtonAstroLib.Tests
             var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
             var moment = new DateTimeOffset(2012, 5, 7, 23, 20, 12, TimeSpan.FromHours(2));
 
-            var result = northpole.GetHorizontalCoordinate(moment, MaassluisLon, MaassluisLat);
+            var result = northpole.GetHorizontalCoordinate(moment, Maassluis);
 
-            AssertAngleEqual(MaassluisLat, result.Altitude);
+            AssertAngleEqual(Maassluis.Latitude, result.Altitude);
             Assert.Equal(0.0, result.Azimuth.Degrees, 0);
         }
 
@@ -37,7 +39,7 @@ namespace ProtonAstroLib.Tests
             var vega = new EquatorialCoordinate(Angle.FromTime(new TimeSpan(18, 36, 56)), Angle.FromDegrees(38, 47, 3));
             var moment = Constants.J2000Epoch;
 
-            var result = vega.GetHorizontalCoordinate(moment, MaassluisLon, MaassluisLat);
+            var result = vega.GetHorizontalCoordinate(moment, Maassluis);
 
             // expected values from Stellarium
             AssertAngleEqual(Angle.FromDegrees(197, 29, 13), result.Azimuth);
@@ -50,7 +52,7 @@ namespace ProtonAstroLib.Tests
             var vega = new EquatorialCoordinate(Angle.FromTime(new TimeSpan(18, 36, 56)), Angle.FromDegrees(38, 47, 3));
             var moment = new DateTimeOffset(2012, 5, 7, 23, 20, 12, TimeSpan.FromHours(2));
 
-            var result = vega.GetHorizontalCoordinate(moment, MaassluisLon, MaassluisLat);
+            var result = vega.GetHorizontalCoordinate(moment, Maassluis);
 
             // expected values from Stellarium
             AssertAngleEqual(Angle.FromDegrees(64, 19, 06), result.Azimuth);
