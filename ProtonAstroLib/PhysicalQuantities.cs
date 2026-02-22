@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.RegularExpressions;
 
 namespace ProtonAstroLib
 {
@@ -128,6 +129,8 @@ namespace ProtonAstroLib
         /// <returns></returns>
         public string ToString(string format, IFormatProvider formatProvider)
         {
+            if (string.IsNullOrEmpty(format))
+                return ToString();
             if (format == "DMS")
                 return ToDMSString();
             if (format.StartsWith("HMS"))
@@ -151,6 +154,38 @@ namespace ProtonAstroLib
         public int CompareTo(Angle other)
         {
             return this.value.CompareTo(other.value);
+        }
+
+        private static Regex DMSRegex = new Regex(@"^(\d+)(?:d|°)\s*(\d+)?(?:m|')?\s*(\d+(?:\.\d+)?)?(?:s|"")?$");
+        public static Angle FromDegrees(string degrees)
+        {
+            var match = DMSRegex.Match(degrees);
+            if (!match.Success)
+            {
+                if (double.TryParse(degrees, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var d))
+                    return FromDegrees(d);
+                throw new FormatException($"Invalid angle format: {degrees}");
+            }
+            var D = int.Parse(match.Groups[1].Value);
+            var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value) : 0;
+            return FromDegrees(D, M, S);
+        }
+
+        private static Regex HMSRegex = new Regex(@"^(\d+)(?:[hH])\s*(\d+)?(?:[mM])?\s*(\d+(?:\.\d+)?)?(?:[sS])?$");
+        public static Angle FromHMS(string hms)
+        {
+            var match = HMSRegex.Match(hms);
+            if (!match.Success)
+            {
+                if (TimeSpan.TryParse(hms, out var d))
+                    return FromTime(d);
+                throw new FormatException($"Invalid angle format: {hms}");
+            }
+            var H = int.Parse(match.Groups[1].Value);
+            var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+            var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value) : 0;
+            return FromTime(new TimeSpan(hours: H, minutes: M, seconds: 0).Add(TimeSpan.FromSeconds(S)));
         }
     }
 

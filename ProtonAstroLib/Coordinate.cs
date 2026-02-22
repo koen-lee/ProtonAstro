@@ -2,6 +2,7 @@
 
 namespace ProtonAstroLib
 {
+
     public struct WGS84Coordinate(Angle lat, Angle lon)
     { 
         public readonly Angle Latitude { get; init; } = lat;
@@ -26,6 +27,12 @@ namespace ProtonAstroLib
 
     public struct EquatorialCoordinate(Angle ra, Angle dec)
     {
+
+        public static EquatorialCoordinate FromRaDec(string ra, string dec)
+        {
+            return new EquatorialCoordinate(Angle.FromHMS(ra), Angle.FromDegrees(dec));
+        }
+
         public readonly Angle RightAscention { get { return ra; } }
         public readonly Angle Declination { get { return dec; } }
 
