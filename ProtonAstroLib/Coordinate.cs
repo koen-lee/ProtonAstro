@@ -1,10 +1,12 @@
-﻿using System;
+using System;
+using static System.Math;
+using static ProtonAstroLib.Angle;
 
 namespace ProtonAstroLib
 {
 
     public struct WGS84Coordinate(Angle lat, Angle lon)
-    { 
+    {
         public readonly Angle Latitude { get; init; } = lat;
         public readonly Angle Longitude { get; init; } = lon;
     }
@@ -21,7 +23,7 @@ namespace ProtonAstroLib
         {
             var altdiff = (double)(Altitude - other.Altitude);
             var azdiff = (double)(Azimuth - other.Azimuth);
-            return (Angle)Math.Sqrt(altdiff * altdiff + azdiff * azdiff);
+            return (Angle)Sqrt(altdiff * altdiff + azdiff * azdiff);
         }
     }
 
@@ -35,7 +37,7 @@ namespace ProtonAstroLib
 
         public static EquatorialCoordinate FromRaDec(string ra, string dec)
         {
-            return new EquatorialCoordinate(Angle.FromHMS(ra), Angle.FromDegrees(dec));
+            return new EquatorialCoordinate(FromHMS(ra), FromDegrees(dec));
         }
 
         public readonly Angle RightAscension { get { return ra; } }
@@ -45,18 +47,13 @@ namespace ProtonAstroLib
         {
             var altdiff = (double)(RightAscension - other.RightAscension);
             var azdiff = (double)(Declination - other.Declination);
-            return (Angle)Math.Sqrt(altdiff * altdiff + azdiff * azdiff);
+            return (Angle)Sqrt(altdiff * altdiff + azdiff * azdiff);
         }
-
-
-        // syntactic sugar
-        static readonly Func<Angle, double> sin = a => Math.Sin((double)a);
-        static readonly Func<Angle, double> cos = a => Math.Cos((double)a);
 
         // All wikipedia below is accessed 7 may 2012
 
         /// <summary>
-        /// Applies IAU precession (Lieske 1979) to precess from this coordinate's Epoch
+        /// Applies IAU 2000 precession (Capitaine et al. 2003) to precess from this coordinate's Epoch
         /// to the equinox of the given date. Returns a no-op if the Epoch already matches.
         /// Only supports precession from J2000; coordinates in other epochs are returned as-is.
         /// </summary>
@@ -68,25 +65,26 @@ namespace ProtonAstroLib
 
             // Julian centuries since J2000.0
             var T = moment.Subtract(Constants.J2000Noon_UT).TotalDays / 36525.0;
-            if (Math.Abs(T) > 40)
+            if (Abs(T) > 40)
                 throw new ArgumentOutOfRangeException(nameof(moment),
-                    $"Lieske (1979) precession approximation is only valid within ~1000 years of J2000 and completely unusable over ~4000 years (got T={T:F1} centuries).");
+                    $"IAU 2000 precession approximation is only valid within ~1000 years of J2000 and completely unusable over ~4000 years (got T={T:F1} centuries).");
             var T2 = T * T;
             var T3 = T2 * T;
 
-            // Lieske (1979) precession angles in arcseconds, then convert to degrees
-            var zetaA  = Angle.FromDegrees((2306.2181 * T + 0.30188 * T2 + 0.017998 * T3) / 3600.0);
-            var zA     = Angle.FromDegrees((2306.2181 * T + 1.09468 * T2 + 0.018203 * T3) / 3600.0);
-            var thetaA = Angle.FromDegrees((2004.3109 * T - 0.42665 * T2 - 0.041833 * T3) / 3600.0);
+            // IAU 2000 precession angles (Capitaine et al. 2003) in arcseconds, then convert to degrees
+            // Constant terms are the frame bias between the dynamical equinox and the ICRS
+            var zetaA  = FromDegrees((2.5976176 + 2306.0809506 * T + 0.3019015 * T2 + 0.0179663 * T3) / 3600.0);
+            var zA     = FromDegrees((-2.5976176 + 2306.0803226 * T + 1.0947790 * T2 + 0.0182273 * T3) / 3600.0);
+            var thetaA = FromDegrees((2004.1917476 * T - 0.4269353 * T2 - 0.0418251 * T3) / 3600.0);
 
             // Rigorous scalar form of the precession rotation
             var raShifted = RightAscension + zetaA;
-            var sinDec = sin(thetaA) * cos(Declination) * cos(raShifted) + cos(thetaA) * sin(Declination);
-            var cosDecSinRA = cos(Declination) * Math.Sin((double)raShifted);
-            var cosDecCosRA = cos(thetaA) * cos(Declination) * cos(raShifted) - sin(thetaA) * sin(Declination);
+            var sinDec = Sin(thetaA) * Cos(Declination) * Cos(raShifted) + Cos(thetaA) * Sin(Declination);
+            var cosDecSinRA = Cos(Declination) * Sin(raShifted);
+            var cosDecCosRA = Cos(thetaA) * Cos(Declination) * Cos(raShifted) - Sin(thetaA) * Sin(Declination);
 
-            var newRA = (Angle)Math.Atan2(cosDecSinRA, cosDecCosRA) + zA;
-            var newDec = (Angle)Math.Asin(sinDec);
+            var newRA = ArcTan(cosDecSinRA, cosDecCosRA) + zA;
+            var newDec = ArcSin(sinDec);
 
             return new EquatorialCoordinate(newRA, newDec, moment);
         }
@@ -105,14 +103,14 @@ namespace ProtonAstroLib
             var hourangle = moment.GreenwichMeanSiderialTime() + longitude - precessed.RightAscension;
             // Code adapted from http://en.wikipedia.org/wiki/Horizontal_coordinate_system#equatorial_to_horizontal 20120504
             // This is some sphere trigonometry
-            var sinAlt = sin(latitude) * sin(precessed.Declination) + cos(latitude) * cos(precessed.Declination) * cos(hourangle);
-            var cosAzCosAlt = cos(latitude) * sin(precessed.Declination) - sin(latitude) * cos(precessed.Declination) * cos(hourangle);
-            var sinAzCosAlt = -cos(precessed.Declination) * sin(hourangle);
+            var sinAlt = Sin(latitude) * Sin(precessed.Declination) + Cos(latitude) * Cos(precessed.Declination) * Cos(hourangle);
+            var cosAzCosAlt = Cos(latitude) * Sin(precessed.Declination) - Sin(latitude) * Cos(precessed.Declination) * Cos(hourangle);
+            var sinAzCosAlt = -Cos(precessed.Declination) * Sin(hourangle);
 
-            var radius = Pythagoras(cosAzCosAlt, sinAzCosAlt);
+            var radius = Sqrt(cosAzCosAlt * cosAzCosAlt + sinAzCosAlt * sinAzCosAlt);
             // Using Atan2 makes sure that the angle from the right quadrant is calculated
-            var azimuth = (Angle)Math.Atan2(sinAzCosAlt, cosAzCosAlt);
-            var altitude = (Angle)Math.Atan2(sinAlt, radius);
+            var azimuth = ArcTan(sinAzCosAlt, cosAzCosAlt);
+            var altitude = ArcTan(sinAlt, radius);
 
             // Atmospheric refraction: Sæmundsson (1986) formula
             // Adds a small positive correction so objects appear higher than geometric position
@@ -132,13 +130,8 @@ namespace ProtonAstroLib
             if (altDeg < -1) return geometricAltitude; // below horizon, no correction
             // Sæmundsson (1986), cited in Meeus "Astronomical Algorithms"
             // R in arcminutes = 1.02 / tan(h + 10.3/(h + 5.11))
-            var correction = 1.02 / Math.Tan((altDeg + 10.3 / (altDeg + 5.11)) * Math.PI / 180.0);
-            return geometricAltitude + Angle.FromDegrees(correction / 60.0);
-        }
-
-        private static double Pythagoras(double x, double y)
-        {
-            return Math.Sqrt(x * x + y * y);
+            var correction = 1.02 / Tan((altDeg + 10.3 / (altDeg + 5.11)) * PI / 180.0);
+            return geometricAltitude + FromDegrees(correction / 60.0);
         }
     }
 }

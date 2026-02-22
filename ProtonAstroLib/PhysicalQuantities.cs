@@ -62,7 +62,7 @@ namespace ProtonAstroLib
 
         public static Angle ArcSin(double sin) { return (Angle)Math.Asin(sin); }
         public static Angle ArcCos(double cos) { return (Angle)Math.Acos(cos); }
-        public static Angle ArcTan(double x, double y) { return (Angle)Math.Atan2(y, x); }
+        public static Angle ArcTan(double y, double x) { return (Angle)Math.Atan2(y, x); }
         public static Angle ArcTan(double x) { return (Angle)Math.Atan(x); }
         /// <summary>
         /// Returns the angle as between 0, inclusive, and 2Pi, exclusive.
