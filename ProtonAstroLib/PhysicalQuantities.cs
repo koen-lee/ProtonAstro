@@ -41,7 +41,7 @@ namespace ProtonAstroLib
     /// <summary>
     /// A geometric angle, default representation in radians
     /// </summary>
-    public struct Angle :IComparable<Angle>
+    public struct Angle : IComparable<Angle>, IFormattable
     {
         private double value;
 
@@ -113,8 +113,30 @@ namespace ProtonAstroLib
 
         public override string ToString()
         {
-            return ToDMSString();
-            // return Degrees.ToString() + "deg";
+            return Degrees.ToString() + "deg";
+        }
+
+        /// <summary>
+        /// Formats the angle using the specified format string. Supported formats are:
+        /// DMS: degrees, minutes, seconds (e.g. 12d34m56s)
+        /// HMS: hours, minutes, seconds (e.g. 12h34m56s)
+        /// N{format}: normalized angle in degrees, using the specified format for the number (e.g. N0 for no decimals, N2 for 2 decimals, etc.)
+        /// {format}: angle in degrees, using the specified format for the number (e.g. F2 for 2 decimals, etc.)
+        /// </summary>
+        /// <param name="format"></param>
+        /// <param name="formatProvider"></param>
+        /// <returns></returns>
+        public string ToString(string format, IFormatProvider formatProvider)
+        {
+            if (format == "DMS")
+                return ToDMSString();
+            if (format.StartsWith("HMS"))
+                return Time.ToString(format[3..], formatProvider);
+            if (format.StartsWith('N'))
+                return Normalized.ToString(format[1..], formatProvider);
+            if (format.StartsWith('D'))
+                return Degrees.ToString(format[1..], formatProvider) + "°";
+            return value.ToString(format, formatProvider);
         }
 
         public string ToDMSString()
@@ -125,7 +147,6 @@ namespace ProtonAstroLib
             var S = 60 * 60 * (deg - D - (M / 60));    //seconds
             return string.Format("{0}d{1:00}m{2:0.0}s", D, M, S);
         }
-
 
         public int CompareTo(Angle other)
         {
