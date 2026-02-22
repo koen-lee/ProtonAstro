@@ -33,12 +33,12 @@ namespace ProtonAstroLib
             return new EquatorialCoordinate(Angle.FromHMS(ra), Angle.FromDegrees(dec));
         }
 
-        public readonly Angle RightAscention { get { return ra; } }
+        public readonly Angle RightAscension { get { return ra; } }
         public readonly Angle Declination { get { return dec; } }
 
         public Angle Distance(EquatorialCoordinate other)
         {
-            var altdiff = (double)(RightAscention - other.RightAscention);
+            var altdiff = (double)(RightAscension - other.RightAscension);
             var azdiff = (double)(Declination - other.Declination);
             return (Angle)Math.Sqrt(altdiff * altdiff + azdiff * azdiff);
         }
@@ -58,7 +58,7 @@ namespace ProtonAstroLib
             var longitude = observer.Longitude;
             var latitude = observer.Latitude;
             // Careful reading of http://en.wikipedia.org/wiki/Hour_angle#Relation_with_the_right_ascension
-            var hourangle = moment.GreenwichMeanSiderialTime() + longitude - RightAscention;
+            var hourangle = moment.GreenwichMeanSiderialTime() + longitude - RightAscension;
             // Code adapted from http://en.wikipedia.org/wiki/Horizontal_coordinate_system#equatorial_to_horizontal 20120504
             // This is some sphere trigonometry
             var sinAlt = sin(latitude) * sin(Declination) + cos(latitude) * cos(Declination) * cos(hourangle);
