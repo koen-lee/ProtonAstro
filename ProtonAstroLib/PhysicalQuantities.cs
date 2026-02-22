@@ -30,12 +30,12 @@ namespace ProtonAstroLib
         public static Distance FromAU(double AUs) { return Constants.AU * AUs; }
 
 
-        public static Distance operator -(Distance a) { return (Distance)(-a.value); }
-        public static Distance operator +(Distance a, Distance b) { return (Distance)(a.value + b.value); }
-        public static Distance operator -(Distance a, Distance b) { return (Distance)(a.value - b.value); }
-        public static Distance operator *(Distance a, double b) { return (Distance)(a.value * b); }
-        public static Distance operator *(double b, Distance a) { return (Distance)(a.value * b); }
-        public static Distance operator /(Distance a, double b) { return (Distance)(a.value / b); }
+        public static Distance operator -(Distance a) => (Distance)(-a.value);
+        public static Distance operator +(Distance a, Distance b) => (Distance)(a.value + b.value);
+        public static Distance operator -(Distance a, Distance b) => (Distance)(a.value - b.value);
+        public static Distance operator *(Distance a, double b) => (Distance)(a.value * b);
+        public static Distance operator *(double b, Distance a) => (Distance)(a.value * b);
+        public static Distance operator /(Distance a, double b) => (Distance)(a.value / b);
 
     }
 
@@ -72,15 +72,12 @@ namespace ProtonAstroLib
         {
             get
             {
-                var normalizedValue = value;
-                var circle = 2 * Math.PI;
-                if (double.IsInfinity(normalizedValue)) throw new InvalidOperationException();
-                if (double.IsNaN(normalizedValue)) throw new InvalidOperationException();
-                while (normalizedValue < 0)
-                    normalizedValue += circle;
-                while (normalizedValue >= circle)
-                    normalizedValue -= circle;
-                return new Angle() { value = normalizedValue };
+                if (double.IsInfinity(value)) throw new InvalidOperationException();
+                if (double.IsNaN(value)) throw new InvalidOperationException();
+                const double circle = 2 * Math.PI;
+                var result = value % circle;
+                if (result < 0) result += circle;
+                return new Angle() { value = result };
             }
         }
 
@@ -100,15 +97,13 @@ namespace ProtonAstroLib
         {
             get
             {
-                var normalizedValue = value;
+                if (double.IsInfinity(value)) throw new InvalidOperationException();
+                if (double.IsNaN(value)) throw new InvalidOperationException();
                 const double circle = 2 * Math.PI;
-                if (double.IsInfinity(normalizedValue)) throw new InvalidOperationException();
-                if (double.IsNaN(normalizedValue)) throw new InvalidOperationException();
-                while (normalizedValue < -Math.PI)
-                    normalizedValue += circle;
-                while (normalizedValue >= Math.PI)
-                    normalizedValue -= circle;
-                return new Angle() { value = normalizedValue };
+                var result = value % circle;
+                if (result < -Math.PI) result += circle;
+                if (result >= Math.PI) result -= circle;
+                return new Angle() { value = result };
             }
         }
         /// <summary>
@@ -118,14 +113,14 @@ namespace ProtonAstroLib
         /// <returns></returns>
         public static Angle FromTime(TimeSpan time) { return FromDegrees(time.TotalHours * (360 / 24)); }
 
-        public static Angle operator -(Angle a) { return (Angle)(-a.value); }
-        public static Angle operator +(Angle a, Angle b) { return (Angle)(a.value + b.value); }
-        public static Angle operator -(Angle a, Angle b) { return (Angle)(a.value - b.value); }
-        public static Angle operator *(Angle a, double b) { return (Angle)(a.value * b); }
-        public static Angle operator *(double b, Angle a) { return (Angle)(a.value * b); }
-        public static Angle operator /(Angle a, double b) { return (Angle)(a.value / b); }
-        public static bool operator >(Angle a, Angle b) { return a.value > b.value; }
-        public static bool operator <(Angle a, Angle b) { return a.value < b.value; }
+        public static Angle operator -(Angle a) => (Angle)(-a.value);
+        public static Angle operator +(Angle a, Angle b) => (Angle)(a.value + b.value);
+        public static Angle operator -(Angle a, Angle b) => (Angle)(a.value - b.value);
+        public static Angle operator *(Angle a, double b) => (Angle)(a.value * b);
+        public static Angle operator *(double b, Angle a) => (Angle)(a.value * b);
+        public static Angle operator /(Angle a, double b) => (Angle)(a.value / b);
+        public static bool operator >(Angle a, Angle b) => a.value > b.value;
+        public static bool operator <(Angle a, Angle b) => a.value < b.value;
 
         public static Angle FromDegrees(int degrees, int minutes, double seconds)
         {
