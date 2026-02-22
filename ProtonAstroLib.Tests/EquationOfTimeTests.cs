@@ -22,7 +22,7 @@ namespace ProtonAstroLib.Tests
         [Fact]
         public void EquationOfTime_CancelsOutOverYear()
         {
-            var date = Constants.J2000Epoch;
+            var date = Constants.J2000Epoch + TimeSpan.FromDays(-40);
             var sum = 0.0;
             var steps = (int)(365.25 * 4); // 6-hour intervals over one orbital period
             for (int i = 0; i < steps; i++)
