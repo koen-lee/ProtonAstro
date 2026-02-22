@@ -2,15 +2,19 @@
 
 namespace ProtonAstroLib
 {
+    public struct WSG84Coordinate(Angle lat, Angle lon)
+    { 
+        public readonly Angle Latitude { get; init; } = lat;
+        public readonly Angle Longitude { get; init; } = lon;
+    }
+
     public struct HorizontalCoordinate
     {
-        private Angle _alt;
-        private Angle _az;
-        public Angle Altitude { get { return _alt; } }
-        public Angle Azimuth { get { return _az; } }
+        public readonly Angle Altitude { get; init; }
+        public readonly Angle Azimuth { get; init; }
 
         public HorizontalCoordinate(Angle alt, Angle az)
-        { _alt = alt.Normalized; _az = az.Normalized; }
+        { Altitude = alt.Normalized; Azimuth = az.Normalized; }
 
         public Angle Distance(HorizontalCoordinate other)
         {
@@ -20,13 +24,10 @@ namespace ProtonAstroLib
         }
     }
 
-    public struct EquatorialCoordinate
+    public struct EquatorialCoordinate(Angle ra, Angle dec)
     {
-        public Angle RightAscention { get { return _ra; } }
-        public Angle Declination { get { return _dec; } }
-
-        public EquatorialCoordinate(Angle ra, Angle dec)
-        { _ra = ra; _dec = dec; }
+        public readonly Angle RightAscention { get { return ra; } }
+        public readonly Angle Declination { get { return dec; } }
 
         public Angle Distance(EquatorialCoordinate other)
         {
@@ -39,8 +40,6 @@ namespace ProtonAstroLib
         // syntactic sugar
         static readonly Func<Angle, double> sin = a => Math.Sin((double)a);
         static readonly Func<Angle, double> cos = a => Math.Cos((double)a);
-        private Angle _ra;
-        private Angle _dec;
 
         // All wikipedia below is accessed 7 may 2012
 
