@@ -156,7 +156,7 @@ namespace ProtonAstroLib
             return this.value.CompareTo(other.value);
         }
 
-        private static Regex DMSRegex = new Regex(@"^(\d+)(?:d|°)\s*(\d+)?(?:m|')?\s*(\d+(?:\.\d+)?)?(?:s|"")?$");
+        private static Regex DMSRegex = new Regex(@"^(-?\d+)(?:d|°)\s*(\d+)?(?:m|')?\s*(\d+(?:\.\d+)?)?(?:s|"")?$");
         public static Angle FromDegrees(string degrees)
         {
             var match = DMSRegex.Match(degrees);
@@ -169,7 +169,7 @@ namespace ProtonAstroLib
             var D = int.Parse(match.Groups[1].Value);
             var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
             var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value) : 0;
-            return FromDegrees(D, M, S);
+            return Math.Sign(D) * FromDegrees(Math.Abs(D), M, S);
         }
 
         private static Regex HMSRegex = new Regex(@"^(\d+)(?:[hH])\s*(\d+)?(?:[mM])?\s*(\d+(?:\.\d+)?)?(?:[sS])?$");

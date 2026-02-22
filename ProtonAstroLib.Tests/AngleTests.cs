@@ -67,6 +67,8 @@ namespace ProtonAstroLib.Tests
         [InlineData("180d", 180.0)]
         [InlineData("45d30m", 45.5)]
         [InlineData("12.5", 12.5)]
+        [InlineData("-08d12m06s", -8.201666666666666)]
+        [InlineData("-16d42m58s", -16.716111111111111)]
         public void FromDegrees_String_ParsesCorrectly(string input, double expectedDegrees)
         {
             Assert.Equal(expectedDegrees, Angle.FromDegrees(input).Degrees, 6);
