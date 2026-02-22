@@ -56,6 +56,17 @@ namespace ProtonAstroLib.Tests
 
             AssertAngleEqual(Maassluis.Latitude, result.Altitude, toleranceDegrees: 0.1);
         }
+        
+        [Fact]
+        public void NorthPole_AtMaassluis_In2026_AltitudeNearLatitude()
+        {
+            var northpole = new EquatorialCoordinate((Angle)13.7, Angle.FromDegrees(90.0));
+            var moment = new DateTimeOffset(2026, 2, 22, 20, 44, 12, TimeSpan.FromHours(2));
+
+            var result = northpole.GetHorizontalCoordinate(moment, Maassluis);
+
+            AssertAngleEqual(Maassluis.Latitude, result.Altitude, toleranceDegrees: 0.1);
+        }
 
         [Fact]
         public void Vega_OnEpoch_CorrectHorizontalCoordinate()
