@@ -27,7 +27,7 @@ namespace ProtonAstroLib
             // UT1 matches UTC within a second http://en.wikipedia.org/wiki/DUT1
             // I guess that's good enough for me.
 
-            var D = moment.Subtract(Constants.J2000Epoch).TotalDays;
+            var D = moment.Subtract(Constants.J2000Noon_UT).TotalDays;
             return Angle.FromTime(TimeSpan.FromHours(18.697374558 + 24.06570982441908 * D));
         }
 

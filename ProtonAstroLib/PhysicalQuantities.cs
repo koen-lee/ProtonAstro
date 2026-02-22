@@ -164,10 +164,14 @@ namespace ProtonAstroLib
         public static double cG = 0.0000000000667;              //Gravitational constant
 
         /// <summary>
-        /// According to (the sources of) Wikipedia, 
-        /// the J2000 epoch is measured from
-        /// January 1, 2000, 11:58:55.816 UTC
+        /// J2000.0 epoch: January 1, 2000, 12:00:00 TT = 11:58:55.816 UTC.
         /// </summary>
         public static DateTimeOffset J2000Epoch = new DateTimeOffset(2000, 1, 1, 11, 58, 55, 816, TimeSpan.Zero);
+
+        /// <summary>
+        /// The GMST formula's D=0 reference: noon UT (≈ noon UTC), not noon TT.
+        /// The ~64s difference between TT and UT causes ~0.27° error in hour angle if J2000Epoch is used instead.
+        /// </summary>
+        public static DateTimeOffset J2000Noon_UT = new DateTimeOffset(2000, 1, 1, 12, 0, 0, TimeSpan.Zero);
     }
 }

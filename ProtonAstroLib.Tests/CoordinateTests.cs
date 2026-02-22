@@ -59,8 +59,8 @@ namespace ProtonAstroLib.Tests
 
         private static void AssertAngleEqual(Angle expected, Angle actual)
         {
-            Assert.True(Math.Abs((expected - actual).Degrees) < 1,
-                $"Expected {expected} but got {actual}");
+            Assert.True(Math.Abs((expected - actual).Degrees) < 0.1,
+                $"Expected {expected} but got {actual}, difference is {(expected - actual).Degrees} degrees.");
         }
     }
 }
