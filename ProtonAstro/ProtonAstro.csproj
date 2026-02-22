@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
-    <AssemblyName>ProtonAstro</AssemblyName>
-    <RootNamespace>ClassLibrary1</RootNamespace>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProtonAstroLib\ProtonAstroLib.csproj" />
+  </ItemGroup>
 
 </Project>
