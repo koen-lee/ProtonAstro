@@ -91,6 +91,26 @@ namespace ProtonAstroLib
         /// The angle as hours, minutes, seconds in a 24-hour clock
         /// </summary>
         public TimeSpan Time { get { return TimeSpan.FromHours(Degrees / (360 / 24)); } }
+
+        /// <summary>
+        /// Returns the angle normalized to the range ±180° (±12h), which is useful for angle differences like hour angle or equation of time.
+        /// Throws InvalidOperationException on degenerate doubles (NaN, inf)
+        /// </summary>
+        public Angle SymmetricNormalized
+        {
+            get
+            {
+                var normalizedValue = value;
+                const double circle = 2 * Math.PI;
+                if (double.IsInfinity(normalizedValue)) throw new InvalidOperationException();
+                if (double.IsNaN(normalizedValue)) throw new InvalidOperationException();
+                while (normalizedValue < -Math.PI)
+                    normalizedValue += circle;
+                while (normalizedValue >= Math.PI)
+                    normalizedValue -= circle;
+                return new Angle() { value = normalizedValue };
+            }
+        }
         /// <summary>
         /// The angle of the time using a 24-hour clock; 1h = 15 degrees
         /// </summary>

@@ -110,6 +110,63 @@ namespace ProtonAstroLib.Tests
             Assert.Throws<ArgumentOutOfRangeException>(() => star.PrecessionCorrected(tooFar));
         }
 
+        [Fact]
+        public void Sun_OnSummerSolstice_DeclinationIsPlus23()
+        {
+            // 2024 summer solstice: June 20 20:51 UTC
+            var solstice = new DateTimeOffset(2024, 6, 20, 20, 51, 0, TimeSpan.Zero);
+            var sun = Catalog.Sun(solstice);
+
+            Assert.Equal(23.44, sun.Declination.Degrees, 0.5);
+        }
+
+        [Fact]
+        public void Sun_OnWinterSolstice_DeclinationIsMinus23()
+        {
+            // 2024 winter solstice: December 21 09:20 UTC
+            var solstice = new DateTimeOffset(2024, 12, 21, 9, 20, 0, TimeSpan.Zero);
+            var sun = Catalog.Sun(solstice);
+
+            Assert.Equal(-23.44, sun.Declination.Degrees, 0.5);
+        }
+
+        [Fact]
+        public void Sun_OnVernalEquinox_DeclinationIsZero()
+        {
+            // 2024 vernal equinox: March 20 03:06 UTC
+            var equinox = new DateTimeOffset(2024, 3, 20, 3, 6, 0, TimeSpan.Zero);
+            var sun = Catalog.Sun(equinox);
+
+            Assert.Equal(0, sun.Declination.Degrees, 0.5);
+        }
+
+        [Fact]
+        public void Sun_AtSolarNoon_IsDueSouth()
+        {
+            // At solar noon the Sun should be due south (azimuth ~180°) from Maassluis.
+            // Solar noon ≈ 12:00 UTC - longitude/15 hours. Maassluis is at ~4.26°E,
+            // so solar noon ≈ 11:43 UTC. On the equinox, noon sun altitude ≈ 90° - latitude ≈ 38°.
+            var equinox = new DateTimeOffset(2024, 3, 20, 11, 43, 0, TimeSpan.Zero);
+            var sun = Catalog.Sun(equinox);
+            var result = sun.GetHorizontalCoordinate(equinox, Maassluis);
+
+            AssertAngleEqual(Angle.FromDegrees(180), result.Azimuth, toleranceDegrees: 2);
+            // Altitude at equinox solar noon ≈ 90 - 51.92 = 38.08°
+            AssertAngleEqual(Angle.FromDegrees(38), result.Altitude, toleranceDegrees: 1);
+        }
+
+        [Fact]
+        public void Sun_SkipsPrecession()
+        {
+            // Sun coordinates are equinox-of-date, so PrecessionCorrected should be a no-op
+            var moment = new DateTimeOffset(2024, 6, 20, 12, 0, 0, TimeSpan.Zero);
+            var sun = Catalog.Sun(moment);
+            var precessed = sun.PrecessionCorrected(moment);
+
+            Assert.Equal(sun.RightAscension.Degrees, precessed.RightAscension.Degrees, 10);
+            Assert.Equal(sun.Declination.Degrees, precessed.Declination.Degrees, 10);
+        }
+
         private static void AssertAngleEqual(Angle expected, Angle actual, double toleranceDegrees = 0.05)
         {
             Assert.True(Math.Abs((expected - actual).Degrees) < toleranceDegrees,

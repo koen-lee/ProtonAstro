@@ -28,21 +28,24 @@ namespace ProtonAstroLib
             return Angle.FromTime(TimeSpan.FromHours(18.697374558 + 24.06570982441908 * D));
         }
 
+        /// <summary>
+        /// Equation of Time: the difference between mean and apparent solar time.
+        /// Derived from the Sun's actual RA vs. the mean sun's uniform RA.
+        /// Positive means the sundial is ahead of the clock.
+        /// </summary>
         public static TimeSpan EquationOfTime(this DateTimeOffset moment)
         {
-            var daynumber = moment.Subtract(new DateTimeOffset(moment.Year, 1, 1, 0, 0, 0, TimeSpan.Zero)).TotalDays;
-            var orbitalVelocity = (Angle)(2 * Math.PI / 365.2422); // angle per day
-            var meanOrbitAngle = orbitalVelocity * (daynumber + 10);
-            var eccentricOrbitAngle = meanOrbitAngle + (Angle)(2 * 0.0167 * Angle.Sin(orbitalVelocity * (daynumber - 2)));
-            var obliquity = Angle.FromDegrees(23.44);
-            var speedDiff = meanOrbitAngle - Angle.ArcTan(Angle.Cos(obliquity), Angle.Tan(eccentricOrbitAngle));
+            var D = moment.Subtract(Constants.J2000Noon_UT).TotalDays;
 
+            // Mean sun RA advances uniformly at ~360°/365.2422 days from the J2000 reference
+            // Mean longitude of the Sun at J2000: 280.4600°
+            var meanLongitude = Angle.FromDegrees(280.4600 + 0.9856474 * D);
+            // Apparent sun RA from the solar position model
+            var sunRA = Catalog.Sun(moment).RightAscension;
+            // EoT = mean solar RA - apparent solar RA
+            var diff = (meanLongitude - sunRA).SymmetricNormalized;
 
-            var threshold = Angle.FromTime(TimeSpan.FromMinutes(720)); // fix tangent
-            while (speedDiff > threshold / 2)
-                speedDiff -= threshold;
-
-            return speedDiff.Time;
+            return diff.Time;
         }
     }
 }

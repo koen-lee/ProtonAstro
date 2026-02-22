@@ -24,10 +24,11 @@ namespace ProtonAstroLib.Tests
         {
             var date = Constants.J2000Epoch;
             var sum = 0.0;
-            for (int i = 0; i < 365; i++)
+            var steps = (int)(365.25 * 4); // 6-hour intervals over one orbital period
+            for (int i = 0; i < steps; i++)
             {
                 sum += date.EquationOfTime().TotalMinutes;
-                date = date.AddDays(1);
+                date = date.AddHours(6);
             }
 
             Assert.True(Math.Abs(sum) < 1,
