@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.RegularExpressions;
+using static System.Math;
 
 namespace ProtonAstroLib
 {
@@ -60,10 +61,10 @@ namespace ProtonAstroLib
         public static double Cos(Angle a) { return Math.Cos(a.value); }
         public static double Tan(Angle a) { return Math.Tan(a.value); }
 
-        public static Angle ArcSin(double sin) { return (Angle)Math.Asin(sin); }
-        public static Angle ArcCos(double cos) { return (Angle)Math.Acos(cos); }
-        public static Angle ArcTan(double y, double x) { return (Angle)Math.Atan2(y, x); }
-        public static Angle ArcTan(double x) { return (Angle)Math.Atan(x); }
+        public static Angle ArcSin(double sin) { return (Angle)Asin(sin); }
+        public static Angle ArcCos(double cos) { return (Angle)Acos(cos); }
+        public static Angle ArcTan(double y, double x) { return (Angle)Atan2(y, x); }
+        public static Angle ArcTan(double x) { return (Angle)Atan(x); }
         /// <summary>
         /// Returns the angle as between 0, inclusive, and 2Pi, exclusive.
         /// Throws InvalidOperationException on degenerate doubles (NaN, inf)
@@ -74,15 +75,15 @@ namespace ProtonAstroLib
             {
                 if (double.IsInfinity(value)) throw new InvalidOperationException();
                 if (double.IsNaN(value)) throw new InvalidOperationException();
-                const double circle = 2 * Math.PI;
+                const double circle = 2 * PI;
                 var result = value % circle;
                 if (result < 0) result += circle;
                 return new Angle() { value = result };
             }
         }
 
-        public double Degrees { get { return (360 * value) / (2 * Math.PI); } }
-        public static Angle FromDegrees(double value) { return (Angle)((2 * Math.PI) * (value / 360)); }
+        public double Degrees { get { return 360 * value / (2 * PI); } }
+        public static Angle FromDegrees(double value) { return (Angle)(2 * PI * (value / 360)); }
 
         /// <summary>
         /// The angle as hours, minutes, seconds in a 24-hour clock
@@ -99,10 +100,10 @@ namespace ProtonAstroLib
             {
                 if (double.IsInfinity(value)) throw new InvalidOperationException();
                 if (double.IsNaN(value)) throw new InvalidOperationException();
-                const double circle = 2 * Math.PI;
+                const double circle = 2 * PI;
                 var result = value % circle;
-                if (result < -Math.PI) result += circle;
-                if (result >= Math.PI) result -= circle;
+                if (result < -PI) result += circle;
+                if (result >= PI) result -= circle;
                 return new Angle() { value = result };
             }
         }
@@ -124,7 +125,7 @@ namespace ProtonAstroLib
 
         public static Angle FromDegrees(int degrees, int minutes, double seconds)
         {
-            return FromDegrees(degrees + minutes / 60.0 + seconds / (3600.0));
+            return FromDegrees(degrees + minutes / 60.0 + seconds / 3600.0);
         }
 
         public override string ToString()
@@ -160,8 +161,8 @@ namespace ProtonAstroLib
         public string ToDMSString()
         {
             var deg = Normalized.Degrees;
-            var D = Math.Floor(deg);            //degrees
-            var M = Math.Floor(60 * (deg - D)); //minutes
+            var D = Floor(deg);            //degrees
+            var M = Floor(60 * (deg - D)); //minutes
             var S = 60 * 60 * (deg - D - (M / 60));    //seconds
             return string.Format("{0}d{1:00}m{2:0.0}s", D, M, S);
         }
@@ -184,7 +185,7 @@ namespace ProtonAstroLib
             var D = int.Parse(match.Groups[1].Value);
             var M = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
             var S = match.Groups[3].Success ? double.Parse(match.Groups[3].Value, System.Globalization.CultureInfo.InvariantCulture) : 0;
-            return Math.Sign(D) * FromDegrees(Math.Abs(D), M, S);
+            return Sign(D) * FromDegrees(Abs(D), M, S);
         }
 
         private static Regex HMSRegex = new Regex(@"^(\d+)(?:[hH])\s*(\d+)?(?:[mM])?\s*(\d+(?:\.\d+)?)?(?:[sS])?$");
