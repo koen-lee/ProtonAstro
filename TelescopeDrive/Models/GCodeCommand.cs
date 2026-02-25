@@ -13,6 +13,12 @@ public record GCodeCommand(string Command, string? Description = null)
     /// <summary>Query realtime stepper position mid-move (Marlin M114 R).</summary>
     public static GCodeCommand QueryRealtimePosition => new("M114 R", "Query realtime position");
 
+    /// <summary>Quick-stop: cancel all queued moves immediately (Marlin M410).</summary>
+    public static GCodeCommand QuickStop => new("M410", "Quick-stop");
+
+    /// <summary>Wait for all moves to complete (Marlin M400). Blocks until planner is empty.</summary>
+    public static GCodeCommand WaitForMoves => new("M400", "Wait for moves");
+
     /// <summary>Maximum feedrate in deg/min to clamp near-zenith azimuth singularity.</summary>
     public const double MaxFeedrateDegPerMin = 60.0;
 

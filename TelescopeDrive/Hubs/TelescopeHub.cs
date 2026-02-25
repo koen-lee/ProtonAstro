@@ -95,10 +95,12 @@ public class TelescopeHub : Hub
             "left" => (0.0, -stepDeg),
             _ => (0.0, 0.0),
         };
-        // Accumulate offset so tracking preserves the jog
-        _tracking.Jog(dAlt, dAz);
-        // Also send the immediate relative move to the controller
-        await _gcode.SendCommandAsync(GCodeCommand.RelativeMove(dAlt, dAz));
+        await _tracking.JogAsync(dAlt, dAz);
+    }
+
+    public void AdoptPosition()
+    {
+        _tracking.AdoptPosition();
     }
 
     public async Task Calibrate(string starName)

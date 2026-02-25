@@ -25,6 +25,56 @@ namespace ProtonAstroLib
             var azdiff = (double)(Azimuth - other.Azimuth);
             return (Angle)Sqrt(altdiff * altdiff + azdiff * azdiff);
         }
+
+        /// <summary>
+        /// Inverse of EquatorialCoordinate.GetHorizontalCoordinate: converts a horizontal
+        /// (alt/az) position back to equatorial (RA/Dec) for a given moment and observer.
+        /// The result is in equinox-of-date (epoch = moment). Refraction is removed before
+        /// converting, assuming the input altitude is apparent (refraction-corrected).
+        /// </summary>
+        public readonly EquatorialCoordinate ToEquatorialCoordinate(DateTimeOffset moment, WGS84Coordinate observer)
+        {
+            var latitude = observer.Latitude;
+            var longitude = observer.Longitude;
+
+            // Remove atmospheric refraction to get geometric altitude
+            var alt = RemoveRefraction(Altitude);
+            var az = Azimuth;
+
+            // Inverse spherical trig (mirror of GetHorizontalCoordinate)
+            // sin(dec) = sin(alt)*sin(lat) + cos(alt)*cos(lat)*cos(az)
+            var sinDec = Sin(alt) * Sin(latitude) + Cos(alt) * Cos(latitude) * Cos(az);
+            var dec = ArcSin(sinDec);
+
+            // hour angle from atan2:
+            //   numerator:   -cos(alt)*sin(az)          [same as sinAzCosAlt in forward]
+            //   denominator:  sin(alt)*cos(lat) - cos(alt)*sin(lat)*cos(az)  [cosAzCosAlt in forward]
+            var hourAngle = ArcTan(-Cos(alt) * Sin(az),
+                                    Sin(alt) * Cos(latitude) - Cos(alt) * Sin(latitude) * Cos(az));
+
+            // RA = GMST + longitude - HA  (inverse of HA = GMST + lon - RA)
+            var ra = moment.GreenwichMeanSiderialTime() + longitude - hourAngle;
+
+            return new EquatorialCoordinate(ra, dec, moment);
+        }
+
+        /// <summary>
+        /// Inverse of Sæmundsson refraction: given an apparent (refraction-corrected) altitude,
+        /// recover the geometric altitude by iterating the forward formula.
+        /// </summary>
+        private static Angle RemoveRefraction(Angle apparentAltitude)
+        {
+            var appDeg = apparentAltitude.Degrees;
+            if (appDeg < -1) return apparentAltitude;
+            // Iterate: geometric = apparent - R(geometric), starting from geometric ≈ apparent
+            var geoDeg = appDeg;
+            for (int i = 0; i < 3; i++)
+            {
+                var correction = 1.02 / Tan((geoDeg + 10.3 / (geoDeg + 5.11)) * PI / 180.0);
+                geoDeg = appDeg - correction / 60.0;
+            }
+            return FromDegrees(geoDeg);
+        }
     }
 
     public struct EquatorialCoordinate(Angle ra, Angle dec, DateTimeOffset? epoch = null)

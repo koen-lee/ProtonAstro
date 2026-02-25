@@ -11,15 +11,15 @@ namespace TelescopeDrive.Services;
 /// Design: the controller owns realtime motion (smooth, jerk-free steps) while
 /// the host owns the ephemeris (accurate long-term clock). Each tick we:
 ///   1. Query the controller's actual stepper position via M114 R (non-blocking, mid-move)
-///   2. Compute the tracking error (actual vs where ephemeris+jogOffset says we should be now)
+///   2. Compute the tracking error (actual vs ephemeris+offset target)
 ///   3. Compute the target position at now + interval (lookahead)
 ///   4. Adjust feedrate so the move from actual→future_target takes exactly one interval
 ///   5. Clamp feedrate to avoid degenerate speeds near zenith (az singularity)
 ///   6. Send G1 absolute move — goes into planner queue slot ~2, keeps motion smooth
 ///
-/// The target is a Func&lt;DateTimeOffset, EquatorialCoordinate&gt; that abstracts away
-/// fixed stars, the Sun, and future ephemeris objects. Jog offsets are accumulated
-/// in horizontal (alt/az) space and applied on top, so fine-tuning is preserved.
+/// The tick delay uses a linked CancellationToken: the host stoppingToken AND the
+/// tracking service's TickInterruptToken. When a jog interrupts, the delay is
+/// cancelled immediately so the loop can restart from the new position.
 /// </summary>
 public class TrackingBackgroundService : BackgroundService
 {
@@ -55,26 +55,46 @@ public class TrackingBackgroundService : BackgroundService
             {
                 if (_tracking.State is { IsTracking: true, TargetFunc: not null })
                 {
-                    await TickAsync(intervalMs);
+                    await TickAsync(intervalMs, stoppingToken);
                 }
+            }
+            catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+            {
+                // Tick was interrupted by a jog — this is expected, loop restarts
+                _logger.LogDebug("Tracking tick interrupted by jog");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in tracking loop");
             }
 
-            await Task.Delay(intervalMs, stoppingToken);
+            // Wait for the next tick, but allow jog interrupts to wake us early
+            try
+            {
+                using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                    stoppingToken, _tracking.TickInterruptToken);
+                await Task.Delay(intervalMs, linked.Token);
+            }
+            catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
+            {
+                // Interrupted by jog — skip delay, loop restarts immediately
+            }
         }
     }
 
-    private async Task TickAsync(int intervalMs)
+    private async Task TickAsync(int intervalMs, CancellationToken stoppingToken)
     {
+        // Link to both the host stopping token and the jog interrupt token
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+            stoppingToken, _tracking.TickInterruptToken);
+        var ct = linked.Token;
+
         var state = _tracking.State;
         var now = DateTimeOffset.UtcNow;
         var observer = _tracking.Observer;
         var intervalMin = intervalMs / 60000.0;
 
-        // Where should we be pointing RIGHT NOW? (ephemeris + jog offset)
+        // Where should we be pointing RIGHT NOW? (ephemeris + total offset)
         var expectedNow = state.GetTargetPosition(now, observer);
 
         // Where should we be pointing at the END of the next interval? (lookahead)
@@ -83,6 +103,8 @@ public class TrackingBackgroundService : BackgroundService
 
         var targetAlt = expectedFuture.Altitude.Degrees;
         var targetAz = expectedFuture.Azimuth.Degrees;
+
+        ct.ThrowIfCancellationRequested();
 
         // Nominal feedrate: angular distance over interval
         var dAlt = targetAlt - expectedNow.Altitude.Degrees;
@@ -96,9 +118,10 @@ public class TrackingBackgroundService : BackgroundService
         var actualPos = await _gcode.QueryRealtimePositionAsync();
         double feedrate;
 
+        ct.ThrowIfCancellationRequested();
+
         if (actualPos is var (actualAlt, actualAz))
         {
-            // Tracking error: actual position vs where we should be now
             var errAlt = actualAlt - expectedNow.Altitude.Degrees;
             var errAz = actualAz - expectedNow.Azimuth.Degrees;
             if (errAz > 180) errAz -= 360;
@@ -122,23 +145,22 @@ public class TrackingBackgroundService : BackgroundService
             feedrate = nominalFeedrate;
         }
 
-        // Clamp feedrate: avoid degenerate speeds near zenith where azimuth rate → infinity
         feedrate = Math.Clamp(feedrate, 0.001, GCodeCommand.MaxFeedrateDegPerMin);
+
+        ct.ThrowIfCancellationRequested();
 
         if (state.LastCommandedPosition is null)
         {
-            // First move — slew to current position with rapid move, then start tracking
             await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
                 expectedNow.Altitude.Degrees, expectedNow.Azimuth.Degrees));
         }
 
-        // Send the tracked move (absolute G1 — self-correcting, no drift accumulation)
         await _gcode.SendCommandAsync(GCodeCommand.TrackedMove(targetAlt, targetAz, feedrate));
 
         state.LastCommandedPosition = expectedFuture;
         state.LastUpdateTime = now;
 
         await _hub.Clients.All.SendAsync("PositionUpdate",
-            targetAlt, targetAz, state.TargetName, true);
+            targetAlt, targetAz, state.TargetName, true, ct);
     }
 }

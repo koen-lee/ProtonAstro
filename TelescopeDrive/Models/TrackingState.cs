@@ -8,6 +8,8 @@ public class TrackingState
     /// Returns the equatorial coordinate for the target at any given moment.
     /// Abstracts away fixed catalog stars (constant), the Sun (time-dependent),
     /// and future ephemeris targets like planets or comets.
+    /// After "Adopt Position", this func is replaced with one that tracks the
+    /// jogged sky position in equatorial coordinates.
     /// </summary>
     public Func<DateTimeOffset, EquatorialCoordinate>? TargetFunc { get; set; }
 
@@ -17,10 +19,9 @@ public class TrackingState
     public DateTimeOffset? LastUpdateTime { get; set; }
 
     /// <summary>
-    /// Accumulated jog offset in horizontal (alt/az) degrees.
-    /// Applied on top of the ephemeris position so fine-tuning is preserved during tracking.
-    /// Use cases: non-level mount compensation, exploring within a nebula, manual offset
-    /// for uncharted objects.
+    /// Active jog offset in horizontal (alt/az) degrees, accumulated from fine-tuning.
+    /// Zeroed when "Adopt Position" bakes it into a new equatorial target via the
+    /// horizontal→equatorial inverse transform.
     /// </summary>
     public double JogOffsetAltDeg { get; set; }
     public double JogOffsetAzDeg { get; set; }

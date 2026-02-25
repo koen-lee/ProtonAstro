@@ -15,6 +15,15 @@ document.querySelectorAll(".dpad button").forEach(btn => {
     });
 });
 
+document.getElementById("adoptBtn").addEventListener("click", () => {
+    connection.invoke("AdoptPosition")
+        .then(() => {
+            document.getElementById("adoptStatus").textContent = "Position adopted";
+            setTimeout(() => document.getElementById("adoptStatus").textContent = "", 3000);
+        })
+        .catch(err => console.error(err));
+});
+
 // Keyboard arrow support
 document.addEventListener("keydown", e => {
     const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
