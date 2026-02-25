@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtonAstroLib", "ProtonAst
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProtonAstro", "ProtonAstro\ProtonAstro.csproj", "{6268427B-AFEC-40EB-9DEB-B0F3E5716EA0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelescopeDrive", "TelescopeDrive\TelescopeDrive.csproj", "{3DE4189A-670E-4A4B-AC7B-29586C726B84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -63,6 +65,22 @@ Global
 		{6268427B-AFEC-40EB-9DEB-B0F3E5716EA0}.Release|x86.Build.0 = Release|Any CPU
 		{6268427B-AFEC-40EB-9DEB-B0F3E5716EA0}.Release|x64.ActiveCfg = Release|Any CPU
 		{6268427B-AFEC-40EB-9DEB-B0F3E5716EA0}.Release|x64.Build.0 = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|x86.Build.0 = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Debug|x64.Build.0 = Debug|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|x86.ActiveCfg = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|x86.Build.0 = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|x64.ActiveCfg = Release|Any CPU
+		{3DE4189A-670E-4A4B-AC7B-29586C726B84}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
