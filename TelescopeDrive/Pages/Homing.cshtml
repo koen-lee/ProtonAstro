@@ -1,0 +1,16 @@
+@page
+@{
+    ViewData["Title"] = "Homing";
+}
+
+<h1>Homing</h1>
+
+<div class="card">
+    <p>Send homing commands to find endstops and establish the zero position.</p>
+    <div class="btn-row">
+        <button onclick="connection.invoke('Home','x')">Home Altitude (X)</button>
+        <button onclick="connection.invoke('Home','y')">Home Azimuth (Y)</button>
+        <button onclick="connection.invoke('Home','all')" class="success">Home All</button>
+    </div>
+    <p id="homing-status" style="margin-top:0.5rem; color: var(--text-dim);"></p>
+</div>

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using TelescopeDrive.Hubs;
 using TelescopeDrive.Models;
 using TelescopeDrive.Services;

@@ -1,0 +1,29 @@
+@page
+@{
+    ViewData["Title"] = "Fine-Tune";
+}
+
+<h1>Fine-Tune</h1>
+
+<div class="card">
+    <h2>Step Size</h2>
+    <div class="btn-row">
+        <button class="step-btn" data-step="0.01">0.01</button>
+        <button class="step-btn" data-step="0.05">0.05</button>
+        <button class="step-btn active" data-step="0.1">0.1</button>
+        <button class="step-btn" data-step="0.5">0.5</button>
+        <button class="step-btn" data-step="1.0">1.0</button>
+    </div>
+
+    <h2>Jog Controls</h2>
+    <div class="dpad">
+        <button class="up" data-dir="up" title="Increase altitude">&#9650;</button>
+        <button class="left" data-dir="left" title="Decrease azimuth">&#9664;</button>
+        <button class="right" data-dir="right" title="Increase azimuth">&#9654;</button>
+        <button class="down" data-dir="down" title="Decrease altitude">&#9660;</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/finetune.js"></script>
+}

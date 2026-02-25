@@ -1,0 +1,33 @@
+@page
+@{
+    ViewData["Title"] = "Debug";
+}
+
+<h1>GCode Debug Console</h1>
+
+<div class="card">
+    <div class="btn-row">
+        <button id="btn-clear">Clear Log</button>
+        <label style="display:inline-flex; align-items:center; gap:0.3rem; margin:0;">
+            <input type="checkbox" id="auto-scroll" checked style="width:auto; margin:0;" />
+            Auto-scroll
+        </label>
+    </div>
+    <div id="gcode-log"></div>
+</div>
+
+<div class="card">
+    <h2>Send GCode</h2>
+    <div class="inline-group">
+        <div>
+            <input type="text" id="gcode-input" placeholder="G28, G0 X10 Y20, ..." />
+        </div>
+        <div style="flex:0">
+            <button id="btn-send">Send</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/debug.js"></script>
+}

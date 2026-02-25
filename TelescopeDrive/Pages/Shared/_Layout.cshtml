@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TelescopeDrive - @ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+    <nav>
+        <span class="brand">TelescopeDrive</span>
+        <a href="/">Target</a>
+        <a href="/Homing">Homing</a>
+        <a href="/Calibration">Calibration</a>
+        <a href="/FineTune">Fine-Tune</a>
+        <a href="/Debug">Debug</a>
+        <a href="/Settings">Settings</a>
+        <span id="connection-status" class="status disconnected">Disconnected</span>
+    </nav>
+    <main>
+        @RenderBody()
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script src="~/js/telescope-hub.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,130 @@
+@page
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<h1>Settings</h1>
+
+<div class="card">
+    <h2>Serial Port</h2>
+    <div class="inline-group">
+        <div>
+            <label for="port-select">Port</label>
+            <select id="port-select">
+                <option value="">-- Refresh to load --</option>
+            </select>
+        </div>
+        <div>
+            <label for="baud-select">Baud Rate</label>
+            <select id="baud-select">
+                <option value="9600">9600</option>
+                <option value="57600">57600</option>
+                <option value="115200" selected>115200</option>
+                <option value="250000">250000</option>
+            </select>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button id="btn-refresh-ports">Refresh Ports</button>
+        <button id="btn-connect" class="success">Connect</button>
+        <button id="btn-disconnect" class="danger">Disconnect</button>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Observer Location</h2>
+    <p id="geo-status" style="color: var(--text-dim); margin-bottom:0.5rem;">
+        Location is auto-detected from browser. Override below if needed.
+    </p>
+    <div class="inline-group">
+        <div>
+            <label for="obs-lat">Latitude</label>
+            <input type="number" id="obs-lat" step="0.0001" placeholder="51.92" />
+        </div>
+        <div>
+            <label for="obs-lon">Longitude</label>
+            <input type="number" id="obs-lon" step="0.0001" placeholder="4.26" />
+        </div>
+    </div>
+    <div class="btn-row">
+        <button id="btn-set-location">Set Location</button>
+        <button id="btn-use-gps">Use Browser Geolocation</button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Refresh ports
+        document.getElementById("btn-refresh-ports").addEventListener("click", () => {
+            connection.invoke("GetAvailablePorts").catch(err => console.error(err));
+        });
+
+        connection.on("AvailablePorts", (ports) => {
+            const sel = document.getElementById("port-select");
+            sel.innerHTML = "";
+            if (ports.length === 0) {
+                sel.innerHTML = '<option value="">No ports found</option>';
+                return;
+            }
+            ports.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p;
+                opt.textContent = p;
+                sel.appendChild(opt);
+            });
+        });
+
+        // Connect / Disconnect
+        document.getElementById("btn-connect").addEventListener("click", () => {
+            const port = document.getElementById("port-select").value;
+            const baud = parseInt(document.getElementById("baud-select").value);
+            if (!port) return;
+            connection.invoke("Connect", port, baud).catch(err => console.error(err));
+        });
+
+        document.getElementById("btn-disconnect").addEventListener("click", () => {
+            connection.invoke("Disconnect").catch(err => console.error(err));
+        });
+
+        // Observer location
+        document.getElementById("btn-set-location").addEventListener("click", () => {
+            const lat = parseFloat(document.getElementById("obs-lat").value);
+            const lon = parseFloat(document.getElementById("obs-lon").value);
+            if (isNaN(lat) || isNaN(lon)) return;
+            connection.invoke("SetObserverLocation", lat, lon).catch(err => console.error(err));
+            document.getElementById("geo-status").textContent = "Location set to " + lat.toFixed(4) + ", " + lon.toFixed(4);
+        });
+
+        document.getElementById("btn-use-gps").addEventListener("click", () => {
+            if (!navigator.geolocation) {
+                document.getElementById("geo-status").textContent = "Geolocation not supported by this browser.";
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    document.getElementById("obs-lat").value = lat.toFixed(4);
+                    document.getElementById("obs-lon").value = lon.toFixed(4);
+                    connection.invoke("SetObserverLocation", lat, lon).catch(err => console.error(err));
+                    document.getElementById("geo-status").textContent = "Location set from GPS: " + lat.toFixed(4) + ", " + lon.toFixed(4);
+                },
+                err => {
+                    document.getElementById("geo-status").textContent = "Geolocation error: " + err.message;
+                }
+            );
+        });
+
+        connection.on("ObserverLocationSet", (lat, lon) => {
+            document.getElementById("obs-lat").value = lat.toFixed(4);
+            document.getElementById("obs-lon").value = lon.toFixed(4);
+        });
+
+        // Auto-refresh ports on page load once connected
+        connection.start ? null : connection.invoke("GetAvailablePorts").catch(() => {});
+        // Try to refresh after a short delay to let SignalR connect
+        setTimeout(() => {
+            connection.invoke("GetAvailablePorts").catch(() => {});
+        }, 1000);
+    </script>
+}

@@ -1,0 +1,193 @@
+:root {
+    --bg: #1a1a2e;
+    --surface: #16213e;
+    --primary: #0f3460;
+    --accent: #e94560;
+    --text: #eee;
+    --text-dim: #888;
+    --success: #4caf50;
+    --warning: #ff9800;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+}
+
+nav {
+    background: var(--surface);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--primary);
+    flex-wrap: wrap;
+}
+
+nav .brand {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-right: 1rem;
+}
+
+nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+nav a:hover, nav a.active { color: var(--text); background: var(--primary); }
+
+.status {
+    margin-left: auto;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.status.connected { background: var(--success); color: #000; }
+.status.disconnected { background: var(--accent); color: #fff; }
+
+main {
+    max-width: 900px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+}
+
+h1 { margin-bottom: 1rem; font-size: 1.5rem; }
+h2 { margin: 1rem 0 0.5rem; font-size: 1.2rem; }
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+label { display: block; margin-bottom: 0.3rem; color: var(--text-dim); font-size: 0.9rem; }
+
+input, select, textarea {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.95rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+
+button, .btn {
+    background: var(--primary);
+    color: var(--text);
+    border: none;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+}
+
+button:hover, .btn:hover { background: var(--accent); }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.danger { background: var(--accent); }
+button.success { background: var(--success); color: #000; }
+
+.btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
+
+.inline-group {
+    display: flex;
+    gap: 0.5rem;
+    align-items: end;
+}
+
+.inline-group > div { flex: 1; }
+
+/* Debug log */
+#gcode-log {
+    background: #000;
+    color: #0f0;
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+    height: 400px;
+    overflow-y: auto;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
+
+#gcode-log .sent { color: #6cf; }
+#gcode-log .received { color: #6f6; }
+#gcode-log .error { color: #f66; }
+
+/* D-pad */
+.dpad {
+    display: grid;
+    grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 64px);
+    gap: 4px;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.dpad button {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dpad .up { grid-area: up; }
+.dpad .down { grid-area: down; }
+.dpad .left { grid-area: left; }
+.dpad .right { grid-area: right; }
+
+/* Position display */
+.position-display {
+    font-family: 'Cascadia Code', 'Consolas', monospace;
+    font-size: 1.1rem;
+}
+
+.position-display .value { color: var(--accent); font-weight: bold; }
+
+.tracking-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    margin-right: 0.3rem;
+}
+
+.tracking-indicator.active {
+    background: var(--success);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.warning-box {
+    background: rgba(255, 152, 0, 0.15);
+    border: 1px solid var(--warning);
+    border-radius: 4px;
+    padding: 0.5rem 0.8rem;
+    margin: 0.5rem 0;
+    font-size: 0.9rem;
+}

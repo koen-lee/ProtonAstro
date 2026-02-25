@@ -1,0 +1,66 @@
+@page
+@{
+    ViewData["Title"] = "Target";
+}
+
+<h1>Target Selection</h1>
+
+<div class="card">
+    <h2>Catalog Objects</h2>
+    <label for="catalog-select">Select target</label>
+    <select id="catalog-select">
+        <option value="">-- Pick a target --</option>
+        <option value="Polaris">Polaris (North Star)</option>
+        <option value="Vega">Vega</option>
+        <option value="Sirius">Sirius</option>
+        <option value="Betelgeuse">Betelgeuse</option>
+        <option value="Rigel">Rigel</option>
+        <option value="Aldebaran">Aldebaran</option>
+        <option value="M1 - Crab Nebula">M1 - Crab Nebula</option>
+        <option value="M31 - Andromeda">M31 - Andromeda</option>
+        <option value="M42 - Orion Nebula">M42 - Orion Nebula</option>
+        <option value="M45 - Pleiades">M45 - Pleiades</option>
+        <option value="Sun">Sun</option>
+    </select>
+
+    <div id="sun-warning" class="warning-box" style="display:none;">
+        Warning: Never observe the Sun without a proper solar filter!
+    </div>
+
+    <h2>Custom Coordinates</h2>
+    <div class="inline-group">
+        <div>
+            <label for="custom-ra">Right Ascension (HH:MM:SS)</label>
+            <input type="text" id="custom-ra" placeholder="18:36:56.3" />
+        </div>
+        <div>
+            <label for="custom-dec">Declination (DDdMMmSSs)</label>
+            <input type="text" id="custom-dec" placeholder="38d47m01s" />
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Current Position</h2>
+    <div class="position-display">
+        <div>Altitude: <span class="value" id="pos-alt">--</span></div>
+        <div>Azimuth: <span class="value" id="pos-az">--</span></div>
+        <div>Target: <span id="pos-target">--</span></div>
+    </div>
+
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-goto">Goto Target</button>
+        <button id="btn-goto-custom">Goto Custom</button>
+        <button id="btn-track" class="success">Start Tracking</button>
+        <button id="btn-stop-track" class="danger" style="display:none;">Stop Tracking</button>
+    </div>
+
+    <div>
+        <span class="tracking-indicator" id="tracking-dot"></span>
+        <span id="tracking-label">Not tracking</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/target.js"></script>
+}

@@ -1,0 +1,45 @@
+@page
+@{
+    ViewData["Title"] = "Calibration";
+}
+
+<h1>Calibration</h1>
+
+<div class="card">
+    <h2>Star Alignment</h2>
+    <p>Point the telescope at a known bright star, then select it below and press Calibrate.
+       This tells the firmware where the telescope is actually pointing (G92 offset).</p>
+
+    <label for="cal-star">Telescope is pointing at:</label>
+    <select id="cal-star">
+        <option value="">-- Select star --</option>
+        <option value="Polaris">Polaris</option>
+        <option value="Vega">Vega</option>
+        <option value="Sirius">Sirius</option>
+        <option value="Betelgeuse">Betelgeuse</option>
+        <option value="Rigel">Rigel</option>
+        <option value="Aldebaran">Aldebaran</option>
+    </select>
+
+    <div class="btn-row">
+        <button id="btn-calibrate" class="success">Calibrate</button>
+    </div>
+
+    <div class="warning-box">
+        This assumes the mount is level. For best results, use a star that is clearly
+        identifiable and not too close to the horizon.
+    </div>
+</div>
+
+<div class="card" id="cal-result" style="display:none;">
+    <h2>Calibration Result</h2>
+    <div class="position-display">
+        <div>Star: <span class="value" id="cal-star-name">--</span></div>
+        <div>Set Altitude: <span class="value" id="cal-alt">--</span></div>
+        <div>Set Azimuth: <span class="value" id="cal-az">--</span></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/calibration.js"></script>
+}
