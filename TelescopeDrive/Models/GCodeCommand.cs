@@ -8,7 +8,13 @@ public record GCodeCommand(string Command, string? Description = null)
         new($"G90\nG0 X{F(altDeg)} Y{F(azDeg)}", $"Move to alt={altDeg:F4} az={azDeg:F4}");
 
     public static GCodeCommand TrackedMove(double altDeg, double azDeg, double feedrateDegPerMin) =>
-        new($"G90\nG1 X{F(altDeg)} Y{F(azDeg)} F{F(feedrateDegPerMin)}", $"Track to alt={altDeg:F4} az={azDeg:F4} F={feedrateDegPerMin:F4}");
+        new($"G1 X{F(altDeg)} Y{F(azDeg)} F{F(feedrateDegPerMin)}", $"Track to alt={altDeg:F4} az={azDeg:F4} F={feedrateDegPerMin:F4}");
+
+    /// <summary>Query realtime stepper position mid-move (Marlin M114 R).</summary>
+    public static GCodeCommand QueryRealtimePosition => new("M114 R", "Query realtime position");
+
+    /// <summary>Maximum feedrate in deg/min to clamp near-zenith azimuth singularity.</summary>
+    public const double MaxFeedrateDegPerMin = 60.0;
 
     public static GCodeCommand RelativeMove(double dAlt, double dAz) =>
         new($"G91\nG0 X{F(dAlt)} Y{F(dAz)}\nG90", $"Jog dAlt={dAlt:F4} dAz={dAz:F4}");

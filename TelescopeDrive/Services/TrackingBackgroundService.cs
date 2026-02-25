@@ -6,6 +6,22 @@ using TelescopeDrive.Models;
 
 namespace TelescopeDrive.Services;
 
+/// <summary>
+/// Tracking loop that keeps the telescope pointed at a celestial target.
+///
+/// Design: the controller owns realtime motion (smooth, jerk-free steps) while
+/// the host owns the ephemeris (accurate long-term clock). Each tick we:
+///   1. Query the controller's actual stepper position via M114 R (non-blocking, mid-move)
+///   2. Compute the tracking error (actual vs where ephemeris says we should be now)
+///   3. Compute the target position at now + interval (lookahead)
+///   4. Adjust feedrate: nominal +/- proportional correction to converge the error
+///   5. Clamp feedrate to avoid degenerate speeds near zenith (az singularity)
+///   6. Send G1 absolute move — goes into planner queue slot ~2, keeps motion smooth
+///
+/// The queue stays at ~2 because SendLineAsync waits for "ok" (which Marlin returns
+/// when the move is queued, not completed), and we only send one G1 per tick.
+/// Absolute positioning means each command is self-correcting — no accumulated drift.
+/// </summary>
 public class TrackingBackgroundService : BackgroundService
 {
     private readonly ITrackingService _tracking;
@@ -56,40 +72,79 @@ public class TrackingBackgroundService : BackgroundService
     {
         var state = _tracking.State;
         var now = DateTimeOffset.UtcNow;
-        var futureTime = now.AddMilliseconds(intervalMs);
         var observer = _tracking.Observer;
+        var intervalMin = intervalMs / 60000.0;
 
-        // Get target coordinates at the future time
-        var target = state.IsSun ? Catalog.Sun(futureTime) : state.Target!.Value;
-        var futureHorizontal = target.GetHorizontalCoordinate(futureTime, observer);
+        // Where should the target be RIGHT NOW?
+        var targetNow = state.IsSun ? Catalog.Sun(now) : state.Target!.Value;
+        var expectedNow = targetNow.GetHorizontalCoordinate(now, observer);
 
-        var altDeg = futureHorizontal.Altitude.Degrees;
-        var azDeg = futureHorizontal.Azimuth.Degrees;
+        // Where should the target be at the END of the next interval (lookahead)?
+        var futureTime = now.AddMilliseconds(intervalMs);
+        var targetFuture = state.IsSun ? Catalog.Sun(futureTime) : state.Target!.Value;
+        var expectedFuture = targetFuture.GetHorizontalCoordinate(futureTime, observer);
 
-        // Calculate feedrate: degrees of travel / interval converted to deg/min
-        if (state.LastCommandedPosition is { } lastPos)
+        var targetAlt = expectedFuture.Altitude.Degrees;
+        var targetAz = expectedFuture.Azimuth.Degrees;
+
+        // Nominal feedrate: angular distance over interval
+        var dAlt = expectedFuture.Altitude.Degrees - expectedNow.Altitude.Degrees;
+        var dAz = expectedFuture.Azimuth.Degrees - expectedNow.Azimuth.Degrees;
+        // Handle azimuth wraparound (shortest path)
+        if (dAz > 180) dAz -= 360;
+        if (dAz < -180) dAz += 360;
+        var nominalDistance = Math.Sqrt(dAlt * dAlt + dAz * dAz);
+        var nominalFeedrate = nominalDistance / intervalMin;
+
+        // Query controller's actual realtime position for error correction
+        var actualPos = await _gcode.QueryRealtimePositionAsync();
+        double feedrate;
+
+        if (actualPos is var (actualAlt, actualAz))
         {
-            var distanceDeg = futureHorizontal.Distance(lastPos).Degrees;
-            var intervalMin = intervalMs / 60000.0;
-            var feedrate = distanceDeg / intervalMin;
+            // Tracking error: actual position vs where ephemeris says we should be now
+            var errAlt = actualAlt - expectedNow.Altitude.Degrees;
+            var errAz = actualAz - expectedNow.Azimuth.Degrees;
+            if (errAz > 180) errAz -= 360;
+            if (errAz < -180) errAz += 360;
+            var errorDistance = Math.Sqrt(errAlt * errAlt + errAz * errAz);
 
-            if (distanceDeg > 0.0005) // dead-band
-            {
-                await _gcode.SendCommandAsync(
-                    GCodeCommand.TrackedMove(altDeg, azDeg, feedrate));
-            }
+            // Adjust feedrate so the move from actual→target takes exactly intervalMs
+            var moveAlt = targetAlt - actualAlt;
+            var moveAz = targetAz - actualAz;
+            if (moveAz > 180) moveAz -= 360;
+            if (moveAz < -180) moveAz += 360;
+            var moveDistance = Math.Sqrt(moveAlt * moveAlt + moveAz * moveAz);
+            feedrate = moveDistance / intervalMin;
+
+            _logger.LogDebug(
+                "Tracking error: {ErrAlt:F5} alt, {ErrAz:F5} az ({ErrDist:F5} total), feedrate adj: {Nominal:F4} -> {Adjusted:F4} deg/min",
+                errAlt, errAz, errorDistance, nominalFeedrate, feedrate);
         }
         else
         {
-            // First move after starting tracking - use absolute goto
-            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(altDeg, azDeg));
+            // No position feedback (disconnected or parse failure) — use nominal
+            feedrate = nominalFeedrate;
         }
 
-        state.LastCommandedPosition = futureHorizontal;
+        // Clamp feedrate: avoid degenerate speeds near zenith where azimuth rate → infinity
+        feedrate = Math.Clamp(feedrate, 0.001, GCodeCommand.MaxFeedrateDegPerMin);
+
+        if (state.LastCommandedPosition is null)
+        {
+            // First move — slew to current position with rapid move, then start tracking
+            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
+                expectedNow.Altitude.Degrees, expectedNow.Azimuth.Degrees));
+        }
+
+        // Send the tracked move (absolute G1 — self-correcting, no drift accumulation)
+        await _gcode.SendCommandAsync(GCodeCommand.TrackedMove(targetAlt, targetAz, feedrate));
+
+        state.LastCommandedPosition = expectedFuture;
         state.LastUpdateTime = now;
 
-        // Push position to all clients
+        // Push position + error to all clients
         await _hub.Clients.All.SendAsync("PositionUpdate",
-            altDeg, azDeg, state.TargetName, true);
+            targetAlt, targetAz, state.TargetName, true);
     }
 }

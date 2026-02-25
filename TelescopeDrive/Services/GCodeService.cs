@@ -1,8 +1,10 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
 using TelescopeDrive.Models;
 
 namespace TelescopeDrive.Services;
 
-public class GCodeService : IGCodeService
+public partial class GCodeService : IGCodeService
 {
     private readonly ISerialPortService _serial;
     private readonly ILogger<GCodeService> _logger;
@@ -33,4 +35,25 @@ public class GCodeService : IGCodeService
         }
         return lastResponse;
     }
+
+    public async Task<(double alt, double az)?> QueryRealtimePositionAsync()
+    {
+        var response = await _serial.SendLineAsync("M114 R");
+        if (response == null) return null;
+
+        // Marlin M114 R response format: "X:12.3456 Y:34.5678 Z:0.0000 E:0.0000 Count X:..."
+        var match = M114Pattern().Match(response);
+        if (!match.Success)
+        {
+            _logger.LogWarning("Could not parse M114 R response: {Response}", response);
+            return null;
+        }
+
+        var x = double.Parse(match.Groups["x"].Value, CultureInfo.InvariantCulture);
+        var y = double.Parse(match.Groups["y"].Value, CultureInfo.InvariantCulture);
+        return (x, y);
+    }
+
+    [GeneratedRegex(@"X:(?<x>-?[\d.]+)\s+Y:(?<y>-?[\d.]+)")]
+    private static partial Regex M114Pattern();
 }
