@@ -26,29 +26,29 @@ public class TrackingService : ITrackingService
         _logger.LogInformation("Observer location set to {Lat}, {Lon}", latDeg, lonDeg);
     }
 
-    public void SetTarget(EquatorialCoordinate target, string name)
+    public void SetTarget(Func<DateTimeOffset, EquatorialCoordinate> targetFunc, string name)
     {
-        State.Target = target;
+        State.TargetFunc = targetFunc;
         State.TargetName = name;
-        State.IsSun = false;
+        State.JogOffsetAltDeg = 0;
+        State.JogOffsetAzDeg = 0;
         _logger.LogInformation("Target set to {Name}", name);
     }
 
-    public void SetTargetSun()
+    public void Jog(double dAltDeg, double dAzDeg)
     {
-        State.Target = Catalog.Sun(DateTimeOffset.UtcNow);
-        State.TargetName = "Sun";
-        State.IsSun = true;
-        _logger.LogInformation("Target set to Sun");
+        State.JogOffsetAltDeg += dAltDeg;
+        State.JogOffsetAzDeg += dAzDeg;
+        _logger.LogInformation("Jog offset now: alt={Alt:F4} az={Az:F4}",
+            State.JogOffsetAltDeg, State.JogOffsetAzDeg);
     }
 
     public async Task GotoAsync()
     {
-        if (State.Target == null) return;
+        if (State.TargetFunc == null) return;
 
         var now = DateTimeOffset.UtcNow;
-        var target = State.IsSun ? Catalog.Sun(now) : State.Target.Value;
-        var horizontal = target.GetHorizontalCoordinate(now, _observer);
+        var horizontal = State.GetTargetPosition(now, _observer);
 
         await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
             horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees));

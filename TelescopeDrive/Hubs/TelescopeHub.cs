@@ -20,7 +20,6 @@ public class TelescopeHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        // Send current state to the new client
         await Clients.Caller.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort);
         await Clients.Caller.SendAsync("TrackingStatus", _tracking.State.IsTracking);
 
@@ -43,13 +42,15 @@ public class TelescopeHub : Hub
     {
         if (targetKey == "Sun")
         {
-            _tracking.SetTargetSun();
+            _tracking.SetTarget(Catalog.Sun, "Sun");
         }
         else
         {
             var entry = CatalogEntries.FindByName(targetKey);
             if (entry == null) return;
-            _tracking.SetTarget(entry.Coordinate, entry.Name);
+            // Fixed star: same coordinate regardless of time
+            var coord = entry.Coordinate;
+            _tracking.SetTarget(_ => coord, entry.Name);
         }
         await _tracking.GotoAsync();
     }
@@ -57,7 +58,7 @@ public class TelescopeHub : Hub
     public async Task GotoCustom(string ra, string dec)
     {
         var coord = EquatorialCoordinate.FromRaDec(ra, dec);
-        _tracking.SetTarget(coord, $"Custom ({ra}, {dec})");
+        _tracking.SetTarget(_ => coord, $"Custom ({ra}, {dec})");
         await _tracking.GotoAsync();
     }
 
@@ -94,6 +95,9 @@ public class TelescopeHub : Hub
             "left" => (0.0, -stepDeg),
             _ => (0.0, 0.0),
         };
+        // Accumulate offset so tracking preserves the jog
+        _tracking.Jog(dAlt, dAz);
+        // Also send the immediate relative move to the controller
         await _gcode.SendCommandAsync(GCodeCommand.RelativeMove(dAlt, dAz));
     }
 
