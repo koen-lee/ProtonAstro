@@ -1,23 +1,39 @@
-const fileInput = document.getElementById("solve-file");
-const btnSolve  = document.getElementById("btn-solve");
-const btnApply  = document.getElementById("btn-apply");
+const fileInput    = document.getElementById("solve-file");
+const btnSolve     = document.getElementById("btn-solve");
+const btnApply     = document.getElementById("btn-apply");
+const btnUseGps    = document.getElementById("btn-use-gps");
 const preview      = document.getElementById("image-preview");
 const previewWrap  = document.getElementById("image-preview-wrap");
 const solveStatus  = document.getElementById("solve-status");
 const solveResult  = document.getElementById("solve-result");
+const gpsMismatch  = document.getElementById("gps-mismatch");
 const calResult    = document.getElementById("cal-result");
 
-let solvedRa  = null;
-let solvedDec = null;
+let solvedRa     = null;
+let solvedDec    = null;
+let solvedEpoch  = null;   // DateTimeOffset ISO string from server, or null
+let solvedGpsLat = null;
+let solvedGpsLon  = null;
 
+// Track observer location so we can compare with photo GPS
+let observerLat = null;
+let observerLon = null;
+connection.on("ObserverLocationSet", (lat, lon) => {
+    observerLat = lat;
+    observerLon = lon;
+});
+
+// ── File selected ──────────────────────────────────────────────────────────
 fileInput.addEventListener("change", () => {
     const file = fileInput.files[0];
     if (!file) return;
 
     btnSolve.disabled = false;
-    solveResult.style.display = "none";
-    calResult.style.display = "none";
-    solvedRa = solvedDec = null;
+    solveResult.style.display  = "none";
+    gpsMismatch.style.display  = "none";
+    calResult.style.display    = "none";
+    solvedRa = solvedDec = solvedEpoch = null;
+    solvedGpsLat = solvedGpsLon = null;
     setStatus("");
 
     if (file.type.startsWith("image/")) {
@@ -28,15 +44,18 @@ fileInput.addEventListener("change", () => {
     }
 });
 
+// ── Plate solve ────────────────────────────────────────────────────────────
 btnSolve.addEventListener("click", async () => {
     const file = fileInput.files[0];
     if (!file) return;
 
     btnSolve.disabled = true;
-    solveResult.style.display = "none";
-    calResult.style.display = "none";
-    solvedRa = solvedDec = null;
-    setStatus("Uploading and solving \u2014 this may take a few minutes\u2026");
+    solveResult.style.display  = "none";
+    gpsMismatch.style.display  = "none";
+    calResult.style.display    = "none";
+    solvedRa = solvedDec = solvedEpoch = null;
+    solvedGpsLat = solvedGpsLon = null;
+    setStatus("Uploading and solving \u2014 this may take up to 30 seconds\u2026");
 
     try {
         const form = new FormData();
@@ -50,8 +69,11 @@ btnSolve.addEventListener("click", async () => {
             return;
         }
 
-        solvedRa  = data.ra;
-        solvedDec = data.dec;
+        solvedRa     = data.ra;
+        solvedDec    = data.dec;
+        solvedEpoch  = data.imageEpoch ?? null;  // ISO 8601 with explicit UTC offset, or null
+        solvedGpsLat = data.gpsLat ?? null;
+        solvedGpsLon = data.gpsLon ?? null;
 
         document.getElementById("sol-ra").textContent          = formatRA(data.ra);
         document.getElementById("sol-dec").textContent         = formatDec(data.dec);
@@ -60,8 +82,20 @@ btnSolve.addEventListener("click", async () => {
         document.getElementById("sol-orientation").textContent = data.orientation.toFixed(1)  + "\u00b0";
         document.getElementById("sol-time").textContent        = data.timeSpent.toFixed(1)    + " s";
 
+        const epochRow = document.getElementById("sol-epoch-row");
+        if (solvedEpoch) {
+            // Server sends a DateTimeOffset — trim sub-seconds and make it readable
+            document.getElementById("sol-epoch").textContent =
+                solvedEpoch.replace("T", " ").replace(/\.\d+/, "");
+            epochRow.style.display = "block";
+        } else {
+            epochRow.style.display = "none";
+        }
+
         solveResult.style.display = "block";
         setStatus("");
+
+        checkGpsMismatch();
     } catch (err) {
         setStatus("Request failed: " + err, true);
     } finally {
@@ -69,9 +103,19 @@ btnSolve.addEventListener("click", async () => {
     }
 });
 
+// ── Apply calibration ──────────────────────────────────────────────────────
 btnApply.addEventListener("click", () => {
     if (solvedRa === null || solvedDec === null) return;
-    connection.invoke("CalibrateRaDec", solvedRa, solvedDec).catch(err => console.error(err));
+    connection.invoke("CalibrateRaDec", solvedRa, solvedDec, solvedEpoch)
+        .catch(err => console.error(err));
+});
+
+// ── Use photo GPS as observer location ─────────────────────────────────────
+btnUseGps.addEventListener("click", () => {
+    if (solvedGpsLat === null || solvedGpsLon === null) return;
+    connection.invoke("SetObserverLocation", solvedGpsLat, solvedGpsLon)
+        .catch(err => console.error(err));
+    gpsMismatch.style.display = "none";
 });
 
 connection.on("CalibrationComplete", (_label, alt, az) => {
@@ -80,10 +124,26 @@ connection.on("CalibrationComplete", (_label, alt, az) => {
     document.getElementById("cal-az").textContent  = az.toFixed(4)  + "\u00b0";
 });
 
+// ── Helpers ────────────────────────────────────────────────────────────────
+function checkGpsMismatch() {
+    if (solvedGpsLat === null || solvedGpsLon === null) return;
+    if (observerLat === null || observerLon === null) return;
+
+    const latDiff = Math.abs(solvedGpsLat - observerLat);
+    const lonDiff = Math.abs(solvedGpsLon - observerLon);
+    if (latDiff <= 0.5 && lonDiff <= 0.5) return;
+
+    document.getElementById("gps-photo-pos").textContent =
+        `${solvedGpsLat.toFixed(4)}\u00b0, ${solvedGpsLon.toFixed(4)}\u00b0`;
+    document.getElementById("gps-current-pos").textContent =
+        `${observerLat.toFixed(4)}\u00b0, ${observerLon.toFixed(4)}\u00b0`;
+    gpsMismatch.style.display = "block";
+}
+
 function setStatus(msg, isError = false) {
-    solveStatus.textContent     = msg;
-    solveStatus.style.display   = msg ? "block" : "none";
-    solveStatus.style.color     = isError ? "#e55" : "";
+    solveStatus.textContent   = msg;
+    solveStatus.style.display = msg ? "block" : "none";
+    solveStatus.style.color   = isError ? "#e55" : "";
 }
 
 // Degrees → HH MM SS.s

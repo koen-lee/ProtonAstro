@@ -37,9 +37,23 @@
         <div>Pixel scale: <span class="value" id="sol-scale">--</span></div>
         <div>Orientation: <span class="value" id="sol-orientation">--</span></div>
         <div>Solve time: <span class="value" id="sol-time">--</span></div>
+        <div id="sol-epoch-row" style="display:none;">Photo taken: <span class="value" id="sol-epoch">--</span></div>
     </div>
     <div class="btn-row" style="margin-top:1rem;">
         <button id="btn-apply" class="success">Apply as Calibration</button>
+    </div>
+</div>
+
+<div class="card warning-box" id="gps-mismatch" style="display:none;">
+    <h2>Location Mismatch</h2>
+    <p>The photo's GPS position differs from the current observer location by more than 0.5°.
+       Update the observer location to match the photo?</p>
+    <div class="position-display">
+        <div>Photo GPS: <span class="value" id="gps-photo-pos">--</span></div>
+        <div>Current observer: <span class="value" id="gps-current-pos">--</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-use-gps">Use Photo GPS Location</button>
     </div>
 </div>
 

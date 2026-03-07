@@ -103,13 +103,13 @@ public class TelescopeHub : Hub
         _tracking.AdoptPosition();
     }
 
-    public async Task CalibrateRaDec(double ra, double dec)
+    public async Task CalibrateRaDec(double ra, double dec, DateTimeOffset? imageEpoch = null)
     {
         var coord = new EquatorialCoordinate(
             Angle.FromDegrees(ra),
             Angle.FromDegrees(dec));
 
-        var now = DateTimeOffset.UtcNow;
+        var now = imageEpoch ?? DateTimeOffset.UtcNow;
         var horizontal = coord.GetHorizontalCoordinate(now, _tracking.Observer);
 
         await _gcode.SendCommandAsync(GCodeCommand.SetPosition(

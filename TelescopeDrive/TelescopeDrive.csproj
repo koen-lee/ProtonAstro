@@ -1,12 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\ProtonAstroLib\ProtonAstroLib.csproj" />
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.0" />
     <PackageReference Include="WatneyAstrometry.Core" Version="2.0.0" />
     <PackageReference Include="WatneyAstrometry.ImageReaders" Version="2.0.0" />
   </ItemGroup>
