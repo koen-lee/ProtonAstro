@@ -9,11 +9,12 @@ const solveResult  = document.getElementById("solve-result");
 const gpsMismatch  = document.getElementById("gps-mismatch");
 const calResult    = document.getElementById("cal-result");
 
-let solvedRa     = null;
-let solvedDec    = null;
-let solvedEpoch  = null;   // DateTimeOffset ISO string from server, or null
-let solvedGpsLat = null;
-let solvedGpsLon  = null;
+let solvedRa          = null;
+let solvedDec         = null;
+let solvedEpoch       = null;   // DateTimeOffset ISO string from server, or null
+let solvedEpochSource = null;   // "gps" | "offsetoriginal" | "datetimeoriginal" | "fallback"
+let solvedGpsLat      = null;
+let solvedGpsLon      = null;
 
 // Track observer location so we can compare with photo GPS
 let observerLat = null;
@@ -32,8 +33,9 @@ fileInput.addEventListener("change", () => {
     solveResult.style.display  = "none";
     gpsMismatch.style.display  = "none";
     calResult.style.display    = "none";
-    solvedRa = solvedDec = solvedEpoch = null;
+    solvedRa = solvedDec = solvedEpoch = solvedEpochSource = null;
     solvedGpsLat = solvedGpsLon = null;
+    document.getElementById("sol-altaz-row").style.display = "none";
     setStatus("");
 
     if (file.type.startsWith("image/")) {
@@ -53,7 +55,7 @@ btnSolve.addEventListener("click", async () => {
     solveResult.style.display  = "none";
     gpsMismatch.style.display  = "none";
     calResult.style.display    = "none";
-    solvedRa = solvedDec = solvedEpoch = null;
+    solvedRa = solvedDec = solvedEpoch = solvedEpochSource = null;
     solvedGpsLat = solvedGpsLon = null;
     setStatus("Uploading and solving \u2014 this may take up to 30 seconds\u2026");
 
@@ -69,11 +71,12 @@ btnSolve.addEventListener("click", async () => {
             return;
         }
 
-        solvedRa     = data.ra;
-        solvedDec    = data.dec;
-        solvedEpoch  = data.imageEpoch ?? null;  // ISO 8601 with explicit UTC offset, or null
-        solvedGpsLat = data.gpsLat ?? null;
-        solvedGpsLon = data.gpsLon ?? null;
+        solvedRa          = data.ra;
+        solvedDec         = data.dec;
+        solvedEpoch       = data.imageEpoch ?? null;
+        solvedEpochSource = data.epochSource ?? null;
+        solvedGpsLat      = data.gpsLat ?? null;
+        solvedGpsLon      = data.gpsLon ?? null;
 
         document.getElementById("sol-ra").textContent          = formatRA(data.ra);
         document.getElementById("sol-dec").textContent         = formatDec(data.dec);
@@ -84,13 +87,15 @@ btnSolve.addEventListener("click", async () => {
 
         const epochRow = document.getElementById("sol-epoch-row");
         if (solvedEpoch) {
-            // Server sends a DateTimeOffset — trim sub-seconds and make it readable
             document.getElementById("sol-epoch").textContent =
                 solvedEpoch.replace("T", " ").replace(/\.\d+/, "");
+            document.getElementById("sol-epoch-source").textContent =
+                solvedEpochSource ? `(${solvedEpochSource})` : "";
             epochRow.style.display = "block";
         } else {
             epochRow.style.display = "none";
         }
+        document.getElementById("sol-altaz-row").style.display = "none";
 
         solveResult.style.display = "block";
         setStatus("");
@@ -122,6 +127,10 @@ connection.on("CalibrationComplete", (_label, alt, az) => {
     calResult.style.display = "block";
     document.getElementById("cal-alt").textContent = alt.toFixed(4) + "\u00b0";
     document.getElementById("cal-az").textContent  = az.toFixed(4)  + "\u00b0";
+
+    document.getElementById("sol-az").textContent  = az.toFixed(4)  + "\u00b0";
+    document.getElementById("sol-alt").textContent = alt.toFixed(4) + "\u00b0";
+    document.getElementById("sol-altaz-row").style.display = "block";
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────

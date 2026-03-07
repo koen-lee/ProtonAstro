@@ -25,7 +25,7 @@ public class SolverCalibrationModel : PageModel
     {
         if (image == null || image.Length == 0)
             return new JsonResult(new { success = false, error = "No image provided." });
-
+        var fallbackTimestamp = DateTimeOffset.UtcNow;
         var dbPath = _config["PlateSolver:QuadDatabasePath"];
         if (string.IsNullOrWhiteSpace(dbPath))
             return new JsonResult(new { success = false, error = "PlateSolver:QuadDatabasePath is not configured in appsettings.json." });
@@ -43,13 +43,17 @@ public class SolverCalibrationModel : PageModel
             // Extract EXIF before handing the file to the solver
             var meta = ext is "jpg" or "jpeg" or "png"
                 ? ExtractExifMeta(tempPath)
-                : (GpsLat: (double?)null, GpsLon: (double?)null, Epoch: (DateTimeOffset?)null);
+                : (GpsLat: (double?)null, GpsLon: (double?)null, Epoch: (DateTimeOffset?)null, EpochSource: (string?)null);
 
             using var cts = new CancellationTokenSource(timeout);
             var result = await _solver.SolveAsync(tempPath, cts.Token);
 
             if (result == null)
                 return new JsonResult(new { success = false, error = "No plate solution found." });
+
+            var (imageEpoch, epochSource) = meta.Epoch.HasValue
+                ? (meta.Epoch, meta.EpochSource)
+                : (fallbackTimestamp, "Request timestamp (inaccurate)");
 
             return new JsonResult(new
             {
@@ -60,7 +64,8 @@ public class SolverCalibrationModel : PageModel
                 orientation = result.Orientation,
                 pixelScale = result.PixelScale,
                 timeSpent = result.TimeSpent.TotalSeconds,
-                imageEpoch = meta.Epoch,
+                imageEpoch,
+                epochSource,
                 gpsLat = meta.GpsLat,
                 gpsLon = meta.GpsLon
             });
@@ -81,13 +86,13 @@ public class SolverCalibrationModel : PageModel
         }
     }
 
-    private (double? GpsLat, double? GpsLon, DateTimeOffset? Epoch) ExtractExifMeta(string filePath)
+    private (double? GpsLat, double? GpsLon, DateTimeOffset? Epoch, string? EpochSource) ExtractExifMeta(string filePath)
     {
         try
         {
             using var img = Image.Load(filePath);
             var exif = img.Metadata.ExifProfile;
-            if (exif == null) return (null, null, null);
+            if (exif == null) return (null, null, null, null);
 
             // GPS coordinates
             double? lat = null, lon = null;
@@ -108,8 +113,9 @@ public class SolverCalibrationModel : PageModel
                 if (lonRef == "W") lon = -lon;
             }
 
-            // Timestamp — prefer GPS date+time (unambiguously UTC) over DateTimeOriginal (local, no tz)
+            // Timestamp — prefer GPS date+time (unambiguously UTC) over DateTimeOriginal
             DateTimeOffset? epoch = null;
+            string? epochSource = null;
 
             exif.TryGetValue(ExifTag.GPSDateStamp, out var gpsDateVal);
             exif.TryGetValue(ExifTag.GPSTimestamp, out var gpsTimeVal);
@@ -129,33 +135,59 @@ public class SolverCalibrationModel : PageModel
                     var s = gpsTime[2].ToDouble();
                     var ms = (int)((s - (int)s) * 1000);
                     epoch = new DateTimeOffset(y, mo, d, h, m, (int)s, ms, TimeSpan.Zero);
+                    epochSource = "gps, reliable";
                 }
             }
 
             if (epoch == null)
             {
-                if (!exif.TryGetValue(ExifTag.OffsetTimeOriginal, out var dtoVal) &&
-                    !exif.TryGetValue(ExifTag.DateTimeOriginal, out dtoVal)) 
+                exif.TryGetValue(ExifTag.DateTimeOriginal, out var dtoVal);
+                exif.TryGetValue(ExifTag.OffsetTimeOriginal, out var offsetVal);
+
+                var dto = dtoVal?.Value;   // "YYYY:MM:DD HH:MM:SS"
+                var off = offsetVal?.Value; // "+HH:MM" or "-HH:MM"
+
+                if (dto != null)
                 {
-                    return (lat, lon, null);
-                }
-                // DateTimeOriginal format: "YYYY:MM:DD HH:MM:SS"
-                // No timezone in EXIF — treat as UTC (best-effort; GPS timestamp above is preferred)
-                var dto = dtoVal?.Value;
-                if (dto != null && DateTimeOffset.TryParseExact(dto, "yyyy:MM:dd HH:mm:ss",
-                        CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed))
-                {
-                    epoch = parsed;
+                    // Parse EXIF datetime components (colon-separated)
+                    var parts = dto.Split(new char[] { ':', ' ' });
+                    if (parts.Length == 6 &&
+                        int.TryParse(parts[0], out var y) && int.TryParse(parts[1], out var mo) &&
+                        int.TryParse(parts[2], out var d) && int.TryParse(parts[3], out var h) &&
+                        int.TryParse(parts[4], out var mi) && int.TryParse(parts[5], out var s))
+                    {
+                        if (off != null && TryParseUtcOffset(off, out var offset))
+                        {
+                            epoch = new DateTimeOffset(y, mo, d, h, mi, s, offset);
+                            epochSource = "offsetoriginal, reliable if camera clock is correct";
+                        }
+                        else
+                        {
+                            epoch = new DateTimeOffset(y, mo, d, h, mi, s, TimeSpan.Zero);
+                            epochSource = "datetimeoriginal, might be in unknown timezone (assumed UTC here)";
+                        }
+                    }
                 }
             }
 
-            return (lat, lon, epoch);
+            return (lat, lon, epoch, epochSource);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Could not extract EXIF metadata from {FilePath}", filePath);
-            return (null, null, null);
+            return (null, null, null, null);
         }
+    }
+
+    private static bool TryParseUtcOffset(string s, out TimeSpan offset)
+    {
+        offset = default;
+        if (s.Length < 6) return false;
+        var sign = s[0] == '-' ? -1 : 1;
+        if (!int.TryParse(s.Substring(1, 2), out var h)) return false;
+        if (!int.TryParse(s.Substring(4, 2), out var m)) return false;
+        offset = new TimeSpan(sign * h, sign * m, 0);
+        return true;
     }
 
     private static double RatToDeg(Rational[] r) =>
