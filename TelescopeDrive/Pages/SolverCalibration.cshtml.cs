@@ -3,9 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
-using WatneyAstrometry.Core;
-using WatneyAstrometry.Core.QuadDb;
-using WatneyAstrometry.ImageReaders;
+using TelescopeDrive.Services;
 
 namespace TelescopeDrive.Pages;
 
@@ -13,11 +11,13 @@ namespace TelescopeDrive.Pages;
 public class SolverCalibrationModel : PageModel
 {
     private readonly IConfiguration _config;
+    private readonly ISolverService _solver;
     private readonly ILogger<SolverCalibrationModel> _logger;
 
-    public SolverCalibrationModel(IConfiguration config, ILogger<SolverCalibrationModel> logger)
+    public SolverCalibrationModel(IConfiguration config, ISolverService solver, ILogger<SolverCalibrationModel> logger)
     {
         _config = config;
+        _solver = solver;
         _logger = logger;
     }
 
@@ -40,37 +40,25 @@ public class SolverCalibrationModel : PageModel
             await using (var fs = System.IO.File.Create(tempPath))
                 await image.CopyToAsync(fs);
 
-            // Extract EXIF before handing the file to Watney
+            // Extract EXIF before handing the file to the solver
             var meta = ext is "jpg" or "jpeg" or "png"
                 ? ExtractExifMeta(tempPath)
                 : (GpsLat: (double?)null, GpsLon: (double?)null, Epoch: (DateTimeOffset?)null);
 
-            var quadDb = new CompactQuadDatabase().UseDataSource(dbPath);
-            var solver = new Solver()
-                .UseQuadDatabase(quadDb)
-                .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), "jpg", "jpeg", "png");
-
-            var strategy = new BlindSearchStrategy(new BlindSearchStrategyOptions
-            {
-                UseParallelism = true,
-                MaxNegativeDensityOffset = 2,
-                MaxPositiveDensityOffset = 2
-            });
-
             using var cts = new CancellationTokenSource(timeout);
-            var result = await solver.SolveFieldAsync(tempPath, strategy, new WatneyAstrometry.Core.Types.SolverOptions(), cts.Token);
+            var result = await _solver.SolveAsync(tempPath, cts.Token);
 
-            if (!result.Success)
+            if (result == null)
                 return new JsonResult(new { success = false, error = "No plate solution found." });
 
             return new JsonResult(new
             {
                 success = true,
-                ra = result.Solution.PlateCenter.Ra,
-                dec = result.Solution.PlateCenter.Dec,
-                fieldRadius = result.Solution.Radius,
-                orientation = result.Solution.Orientation,
-                pixelScale = result.Solution.PixelScale,
+                ra = result.Ra,
+                dec = result.Dec,
+                fieldRadius = result.FieldRadius,
+                orientation = result.Orientation,
+                pixelScale = result.PixelScale,
                 timeSpent = result.TimeSpent.TotalSeconds,
                 imageEpoch = meta.Epoch,
                 gpsLat = meta.GpsLat,
