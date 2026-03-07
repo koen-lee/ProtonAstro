@@ -1,0 +1,80 @@
+@page
+@model TelescopeDrive.Pages.MultiCalibrationModel
+@{
+    ViewData["Title"] = "Multi-Point Calibration";
+}
+
+<h1>Multi-Point Calibration</h1>
+
+<div class="card">
+    <h2>Survey</h2>
+    <p>
+        Slew to each survey point, take a photo, and plate-solve it.
+        The model becomes active after <strong>3 recorded points</strong> — skip any points
+        that are obstructed or otherwise unreachable.
+    </p>
+    <div class="btn-row">
+        <button id="btn-start-survey" class="success">Start Survey</button>
+        <button id="btn-clear-model">Clear Model</button>
+    </div>
+    <div id="survey-status" style="display:none; margin-top:0.75rem;"></div>
+</div>
+
+<div class="card" id="survey-grid-card" style="display:none;">
+    <h2>Survey Grid</h2>
+    <table id="survey-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Alt (°)</th>
+                <th>Az (°)</th>
+                <th>Status</th>
+                <th>ΔAlt (°)</th>
+                <th>ΔAz (°)</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody id="survey-tbody"></tbody>
+    </table>
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-finish-survey" class="success" style="display:none;">Finish Survey</button>
+    </div>
+</div>
+
+<div class="card" id="solve-card" style="display:none;">
+    <h2>Plate Solve — Point <span id="solve-point-index">?</span></h2>
+    <p>
+        Scope slewing to Alt <span id="solve-alt">--</span>°, Az <span id="solve-az">--</span>°.
+        Upload a photo once it arrives.
+    </p>
+    <input type="file" id="solve-file" accept=".jpg,.jpeg,.png,.fit,.fits" />
+    <div class="btn-row" style="margin-top:0.75rem;">
+        <button id="btn-solve" class="success" disabled>Plate Solve</button>
+        <button id="btn-skip">Skip This Point</button>
+    </div>
+    <div id="solve-status" style="display:none; margin-top:0.5rem;"></div>
+    <div id="solve-result" style="display:none; margin-top:0.75rem;">
+        <div>
+            RA <span id="sol-ra">--</span> &nbsp; Dec <span id="sol-dec">--</span>
+        </div>
+        <div style="margin-top:0.25rem;">
+            ΔAlt <span class="value" id="sol-delta-alt">--</span>° &nbsp;
+            ΔAz <span class="value" id="sol-delta-az">--</span>°
+        </div>
+        <div class="btn-row" style="margin-top:0.75rem;">
+            <button id="btn-apply-point" class="success">Record &amp; Continue</button>
+        </div>
+    </div>
+</div>
+
+<div class="card" id="model-summary" style="display:none;">
+    <h2>Alignment Model</h2>
+    <p>
+        <strong><span id="model-point-count">0</span> point(s) recorded.</strong>
+        <span id="model-active-label" style="display:none;"> Model is active and applied to all slews and tracking.</span>
+    </p>
+</div>
+
+@section Scripts {
+    <script src="~/js/multicalibration.js"></script>
+}

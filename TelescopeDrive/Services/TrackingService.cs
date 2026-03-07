@@ -7,13 +7,15 @@ namespace TelescopeDrive.Services;
 public class TrackingService : ITrackingService
 {
     private readonly IGCodeService _gcode;
+    private readonly IAlignmentModel _alignment;
     private readonly ILogger<TrackingService> _logger;
     private WGS84Coordinate _observer;
     private CancellationTokenSource _tickInterruptCts = new();
 
-    public TrackingService(IGCodeService gcode, IOptions<ObserverConfig> config, ILogger<TrackingService> logger)
+    public TrackingService(IGCodeService gcode, IAlignmentModel alignment, IOptions<ObserverConfig> config, ILogger<TrackingService> logger)
     {
         _gcode = gcode;
+        _alignment = alignment;
         _logger = logger;
         _observer = config.Value.ToWGS84();
     }
@@ -106,9 +108,14 @@ public class TrackingService : ITrackingService
         var now = DateTimeOffset.UtcNow;
         var horizontal = State.GetTargetPosition(now, _observer);
 
-        await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
-            horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees));
+        var (corrAlt, corrAz) = _alignment.GetCorrection(
+            horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees);
 
+        await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
+            horizontal.Altitude.Degrees - corrAlt,
+            horizontal.Azimuth.Degrees  - corrAz));
+
+        // Store sky-space position so the tracking loop error comparison stays consistent.
         State.LastCommandedPosition = horizontal;
         State.LastUpdateTime = now;
     }

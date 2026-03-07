@@ -26,6 +26,7 @@ public class TrackingBackgroundService : BackgroundService
     private readonly ITrackingService _tracking;
     private readonly IGCodeService _gcode;
     private readonly IHubContext<TelescopeHub> _hub;
+    private readonly IAlignmentModel _alignment;
     private readonly IOptions<ObserverConfig> _config;
     private readonly ILogger<TrackingBackgroundService> _logger;
 
@@ -33,12 +34,14 @@ public class TrackingBackgroundService : BackgroundService
         ITrackingService tracking,
         IGCodeService gcode,
         IHubContext<TelescopeHub> hub,
+        IAlignmentModel alignment,
         IOptions<ObserverConfig> config,
         ILogger<TrackingBackgroundService> logger)
     {
         _tracking = tracking;
         _gcode = gcode;
         _hub = hub;
+        _alignment = alignment;
         _config = config;
         _logger = logger;
     }
@@ -103,21 +106,31 @@ public class TrackingBackgroundService : BackgroundService
         var futureTime = now.AddMilliseconds(intervalMs + 500);
         var expectedFuture = state.GetTargetPosition(futureTime, observer);
 
-        var targetAlt = expectedFuture.Altitude.Degrees;
-        var targetAz = expectedFuture.Azimuth.Degrees;
+        // Apply alignment correction to get motor-space targets.
+        // Nominal feedrate uses sky-space delta (how fast the celestial target moves).
+        var (corrNowAlt, corrNowAz) = _alignment.GetCorrection(
+            expectedNow.Altitude.Degrees, expectedNow.Azimuth.Degrees);
+        var (corrFutAlt, corrFutAz) = _alignment.GetCorrection(
+            expectedFuture.Altitude.Degrees, expectedFuture.Azimuth.Degrees);
+
+        var motorNowAlt = expectedNow.Altitude.Degrees - corrNowAlt;
+        var motorNowAz  = expectedNow.Azimuth.Degrees  - corrNowAz;
+        var targetAlt   = expectedFuture.Altitude.Degrees - corrFutAlt;
+        var targetAz    = expectedFuture.Azimuth.Degrees  - corrFutAz;
 
         ct.ThrowIfCancellationRequested();
 
-        // Nominal feedrate: angular distance over interval
-        var dAlt = targetAlt - expectedNow.Altitude.Degrees;
-        var dAz = targetAz - expectedNow.Azimuth.Degrees;
+        // Nominal feedrate: angular distance in sky-space over interval
+        var dAlt = expectedFuture.Altitude.Degrees - expectedNow.Altitude.Degrees;
+        var dAz = expectedFuture.Azimuth.Degrees - expectedNow.Azimuth.Degrees;
         if (dAz > 180) dAz -= 360;
         if (dAz < -180) dAz += 360;
         var nominalDistance = Math.Sqrt(dAlt * dAlt + dAz * dAz);
         // feedrate is in degrees per minute, so convert interval from ms to min
         var nominalFeedrate = nominalDistance / moveInterval.TotalMinutes;
 
-        // Query controller's actual realtime position for error correction
+        // Query controller's actual realtime position for error correction.
+        // actualAlt/Az are motor-space; compare against motor-space targets.
         var actualPos = await _gcode.QueryRealtimePositionAsync();
         double feedrate;
 
@@ -125,8 +138,8 @@ public class TrackingBackgroundService : BackgroundService
 
         if (actualPos is var (actualAlt, actualAz))
         {
-            var errAlt = actualAlt - expectedNow.Altitude.Degrees;
-            var errAz = actualAz - expectedNow.Azimuth.Degrees;
+            var errAlt = actualAlt - motorNowAlt;
+            var errAz = actualAz - motorNowAz;
             if (errAz > 180) errAz -= 360;
             if (errAz < -180) errAz += 360;
             var errorDistance = Math.Sqrt(errAlt * errAlt + errAz * errAz);
@@ -154,8 +167,7 @@ public class TrackingBackgroundService : BackgroundService
 
         if (state.LastCommandedPosition is null)
         {
-            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
-                expectedNow.Altitude.Degrees, expectedNow.Azimuth.Degrees));
+            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(motorNowAlt, motorNowAz));
         }
 
         await _gcode.SendCommandAsync(GCodeCommand.TrackedMove(targetAlt, targetAz, feedrate));
@@ -165,7 +177,8 @@ public class TrackingBackgroundService : BackgroundService
 
         var eq = state.TargetFunc!(now);
         await _hub.Clients.All.SendAsync("PositionUpdate",
-            targetAlt, targetAz, state.TargetName, true,
+            expectedFuture.Altitude.Degrees, expectedFuture.Azimuth.Degrees,
+            state.TargetName, true,
             eq.RightAscension.Degrees, eq.Declination.Degrees, ct);
     }
 }

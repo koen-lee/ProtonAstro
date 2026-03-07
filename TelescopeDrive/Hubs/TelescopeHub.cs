@@ -10,18 +10,21 @@ public class TelescopeHub : Hub
     private readonly ITrackingService _tracking;
     private readonly IGCodeService _gcode;
     private readonly ISerialPortService _serial;
+    private readonly IAlignmentModel _alignment;
 
-    public TelescopeHub(ITrackingService tracking, IGCodeService gcode, ISerialPortService serial)
+    public TelescopeHub(ITrackingService tracking, IGCodeService gcode, ISerialPortService serial, IAlignmentModel alignment)
     {
         _tracking = tracking;
         _gcode = gcode;
         _serial = serial;
+        _alignment = alignment;
     }
 
     public override async Task OnConnectedAsync()
     {
         await Clients.Caller.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort);
         await Clients.Caller.SendAsync("TrackingStatus", _tracking.State.IsTracking);
+        await Clients.Caller.SendAsync("AlignmentModelStatus", _alignment.Points.Count);
 
         if (_tracking.State.LastCommandedPosition is { } pos)
         {
@@ -166,5 +169,61 @@ public class TelescopeHub : Hub
     public Task GetAvailablePorts()
     {
         return Clients.Caller.SendAsync("AvailablePorts", _serial.AvailablePorts);
+    }
+
+    // ── Multipoint calibration ────────────────────────────────────────────
+
+    public Task GetSurveyGrid()
+    {
+        var grid = SurveyGrid.Generate()
+            .Select(p => new { altDeg = p.AltDeg, azDeg = p.AzDeg })
+            .ToArray();
+        return Clients.Caller.SendAsync("SurveyGrid", (object)grid);
+    }
+
+    /// <summary>
+    /// Slew to a survey grid position without applying the alignment correction.
+    /// This is intentional: the purpose is to measure the raw pointing error at
+    /// each position, so corrections must not be pre-applied.
+    /// </summary>
+    public async Task GotoSurveyPoint(double altDeg, double azDeg)
+    {
+        await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(altDeg, azDeg));
+        _tracking.State.LastCommandedPosition =
+            new HorizontalCoordinate(Angle.FromDegrees(altDeg), Angle.FromDegrees(azDeg));
+        _tracking.State.LastUpdateTime = DateTimeOffset.UtcNow;
+        await Clients.All.SendAsync("SurveyPointReached", altDeg, azDeg);
+    }
+
+    /// <summary>
+    /// Record one alignment point from a plate solve result.
+    /// expectedAltDeg/expectedAzDeg are the survey grid coordinates we slewed to.
+    /// ra/dec are the plate-solved actual sky coordinates (degrees).
+    /// </summary>
+    public async Task AddAlignmentPoint(
+        double ra, double dec,
+        double expectedAltDeg, double expectedAzDeg,
+        DateTimeOffset? imageEpoch = null)
+    {
+        var now = imageEpoch ?? DateTimeOffset.UtcNow;
+        var actualCoord = new EquatorialCoordinate(Angle.FromDegrees(ra), Angle.FromDegrees(dec));
+        var actualHorizontal = actualCoord.GetHorizontalCoordinate(now, _tracking.Observer);
+
+        var deltaAlt = actualHorizontal.Altitude.Degrees - expectedAltDeg;
+        var deltaAz  = actualHorizontal.Azimuth.Degrees  - expectedAzDeg;
+        if (deltaAz >  180) deltaAz -= 360;
+        if (deltaAz < -180) deltaAz += 360;
+
+        var point = new AlignmentPoint(expectedAltDeg, expectedAzDeg, deltaAlt, deltaAz, now);
+        _alignment.AddPoint(point);
+
+        await Clients.All.SendAsync("AlignmentPointAdded",
+            expectedAltDeg, expectedAzDeg, deltaAlt, deltaAz, _alignment.Points.Count);
+    }
+
+    public async Task ClearAlignmentModel()
+    {
+        _alignment.Clear();
+        await Clients.All.SendAsync("AlignmentModelCleared");
     }
 }

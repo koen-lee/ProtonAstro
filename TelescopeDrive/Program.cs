@@ -17,6 +17,7 @@ else
     builder.Services.AddSingleton<IGCodeService, GCodeService>();
 builder.Services.AddSingleton<ISolverService, WatneySolverService>();
 builder.Services.AddSingleton<ITrackingService, TrackingService>();
+builder.Services.AddSingleton<IAlignmentModel, AlignmentModel>();
 builder.Services.AddHostedService<TrackingBackgroundService>();
 
 builder.Services.AddRazorPages();
