@@ -10,7 +10,6 @@ using WatneyAstrometry.ImageReaders;
 namespace TelescopeDrive.Pages;
 
 [IgnoreAntiforgeryToken]
-[RequestFormLimits(MultipartBodyLengthLimit = 100 * 1024 * 1024)]
 public class SolverCalibrationModel : PageModel
 {
     private readonly IConfiguration _config;
@@ -22,8 +21,6 @@ public class SolverCalibrationModel : PageModel
         _logger = logger;
     }
 
-    [RequestSizeLimit(100 * 1024 * 1024)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 100 * 1024 * 1024)]
     public async Task<IActionResult> OnPostSolveAsync(IFormFile image)
     {
         if (image == null || image.Length == 0)
