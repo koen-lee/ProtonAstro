@@ -1,9 +1,10 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TelescopeDrive.Services;
+using Xunit;
 
 namespace TelescopeDrive.Tests;
 
@@ -30,8 +31,8 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
                 // to pass the null-check in the page model
                 cfg.AddInMemoryCollection(new Dictionary<string, string?>
                 {
-                    ["Observer:SerialPort"]              = "simulated",
-                    ["PlateSolver:QuadDatabasePath"]     = "test",
+                    ["Observer:SerialPort"] = "simulated",
+                    ["PlateSolver:QuadDatabasePath"] = "test",
                 });
             });
 
@@ -68,13 +69,13 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
         var root = json.RootElement;
 
         Assert.True(root.GetProperty("success").GetBoolean(), "Expected success:true from solve endpoint");
-        var ra  = root.GetProperty("ra").GetDouble();
+        var ra = root.GetProperty("ra").GetDouble();
         var dec = root.GetProperty("dec").GetDouble();
-        Assert.Equal(FakeSolve.Ra,  ra);
+        Assert.Equal(FakeSolve.Ra, ra);
         Assert.Equal(FakeSolve.Dec, dec);
-        Assert.Equal(FakeSolve.FieldRadius,  root.GetProperty("fieldRadius").GetDouble());
-        Assert.Equal(FakeSolve.PixelScale,   root.GetProperty("pixelScale").GetDouble());
-        Assert.Equal(FakeSolve.Orientation,  root.GetProperty("orientation").GetDouble());
+        Assert.Equal(FakeSolve.FieldRadius, root.GetProperty("fieldRadius").GetDouble());
+        Assert.Equal(FakeSolve.PixelScale, root.GetProperty("pixelScale").GetDouble());
+        Assert.Equal(FakeSolve.Orientation, root.GetProperty("orientation").GetDouble());
 
         // --- Step 2: Connect a SignalR client and subscribe to CalibrationComplete ---
         var hubUrl = new Uri(_factory.Server.BaseAddress, "/hubs/telescope");
@@ -100,7 +101,7 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.Contains($"{ra:F4}", label);
         Assert.Contains($"{dec:F4}", label);
         Assert.True(double.IsFinite(alt), "Expected a finite altitude");
-        Assert.True(double.IsFinite(az),  "Expected a finite azimuth");
+        Assert.True(double.IsFinite(az), "Expected a finite azimuth");
     }
 }
 
