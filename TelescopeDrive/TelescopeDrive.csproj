@@ -7,5 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ProtonAstroLib\ProtonAstroLib.csproj" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+    <PackageReference Include="WatneyAstrometry.Core" Version="2.0.0" />
+    <PackageReference Include="WatneyAstrometry.ImageReaders" Version="2.0.0" />
   </ItemGroup>
 </Project>

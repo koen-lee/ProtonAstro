@@ -103,6 +103,26 @@ public class TelescopeHub : Hub
         _tracking.AdoptPosition();
     }
 
+    public async Task CalibrateRaDec(double ra, double dec)
+    {
+        var coord = new EquatorialCoordinate(
+            Angle.FromDegrees(ra),
+            Angle.FromDegrees(dec));
+
+        var now = DateTimeOffset.UtcNow;
+        var horizontal = coord.GetHorizontalCoordinate(now, _tracking.Observer);
+
+        await _gcode.SendCommandAsync(GCodeCommand.SetPosition(
+            horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees));
+
+        _tracking.State.LastCommandedPosition = horizontal;
+        _tracking.State.LastUpdateTime = now;
+
+        await Clients.All.SendAsync("CalibrationComplete",
+            $"Plate solve (RA {ra:F4}°, Dec {dec:F4}°)",
+            horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees);
+    }
+
     public async Task Calibrate(string starName)
     {
         var entry = CatalogEntries.FindByName(starName);
