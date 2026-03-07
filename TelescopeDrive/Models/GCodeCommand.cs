@@ -34,9 +34,6 @@ public record GCodeCommand(string Command, string? Description = null)
     /// <summary>Wait for all moves to complete (Marlin M400). Blocks until planner is empty.</summary>
     public static GCodeCommand WaitForMoves => new(Op.WaitForMoves, "Wait for moves");
 
-    /// <summary>Maximum feedrate in deg/min to clamp near-zenith azimuth singularity.</summary>
-    public const double MaxFeedrateDegPerMin = 60.0;
-
     public static GCodeCommand RelativeMove(double dAlt, double dAz) =>
         new($"{Op.RelativeMode}\n{Op.RapidMove} X{F(dAlt)} Y{F(dAz)}\n{Op.AbsoluteMode}", $"Jog dAlt={dAlt:F4} dAz={dAz:F4}");
 

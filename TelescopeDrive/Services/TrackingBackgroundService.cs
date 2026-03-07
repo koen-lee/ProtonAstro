@@ -92,13 +92,15 @@ public class TrackingBackgroundService : BackgroundService
         var state = _tracking.State;
         var now = DateTimeOffset.UtcNow;
         var observer = _tracking.Observer;
-        var intervalMin = intervalMs / 60000.0;
-
+        // add a small buffer to ensure the move does not complete before the next tick
+        // we don't want the controller to be idle at all, or it might start decelerating and cause jerkiness
+        var moveInterval = TimeSpan.FromMilliseconds(intervalMs + 500);
+        
         // Where should we be pointing RIGHT NOW? (ephemeris + total offset)
         var expectedNow = state.GetTargetPosition(now, observer);
 
         // Where should we be pointing at the END of the next interval? (lookahead)
-        var futureTime = now.AddMilliseconds(intervalMs);
+        var futureTime = now.AddMilliseconds(intervalMs + 500);
         var expectedFuture = state.GetTargetPosition(futureTime, observer);
 
         var targetAlt = expectedFuture.Altitude.Degrees;
@@ -112,7 +114,8 @@ public class TrackingBackgroundService : BackgroundService
         if (dAz > 180) dAz -= 360;
         if (dAz < -180) dAz += 360;
         var nominalDistance = Math.Sqrt(dAlt * dAlt + dAz * dAz);
-        var nominalFeedrate = nominalDistance / intervalMin;
+        // feedrate is in degrees per minute, so convert interval from ms to min
+        var nominalFeedrate = nominalDistance / moveInterval.TotalMinutes;
 
         // Query controller's actual realtime position for error correction
         var actualPos = await _gcode.QueryRealtimePositionAsync();
@@ -128,13 +131,13 @@ public class TrackingBackgroundService : BackgroundService
             if (errAz < -180) errAz += 360;
             var errorDistance = Math.Sqrt(errAlt * errAlt + errAz * errAz);
 
-            // Adjust feedrate so the move from actual→future_target takes exactly intervalMs
+            // Adjust feedrate so the move from actual→future_target takes exactly moveInterval
             var moveAlt = targetAlt - actualAlt;
             var moveAz = targetAz - actualAz;
             if (moveAz > 180) moveAz -= 360;
             if (moveAz < -180) moveAz += 360;
             var moveDistance = Math.Sqrt(moveAlt * moveAlt + moveAz * moveAz);
-            feedrate = moveDistance / intervalMin;
+            feedrate = moveDistance / moveInterval.TotalMinutes;
 
             _logger.LogDebug(
                 "Tracking error: {ErrAlt:F5} alt, {ErrAz:F5} az ({ErrDist:F5} total), feedrate adj: {Nominal:F4} -> {Adjusted:F4} deg/min",
@@ -145,7 +148,7 @@ public class TrackingBackgroundService : BackgroundService
             feedrate = nominalFeedrate;
         }
 
-        feedrate = Math.Clamp(feedrate, 0.001, GCodeCommand.MaxFeedrateDegPerMin);
+        feedrate = Math.Clamp(feedrate, 0.001, _config.Value.MaxFeedrateDegPerMin);
 
         ct.ThrowIfCancellationRequested();
 
