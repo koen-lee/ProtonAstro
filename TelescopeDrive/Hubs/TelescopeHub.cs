@@ -25,9 +25,11 @@ public class TelescopeHub : Hub
 
         if (_tracking.State.LastCommandedPosition is { } pos)
         {
+            var eq = _tracking.State.TargetFunc?.Invoke(DateTimeOffset.UtcNow);
             await Clients.Caller.SendAsync("PositionUpdate",
                 pos.Altitude.Degrees, pos.Azimuth.Degrees,
-                _tracking.State.TargetName, _tracking.State.IsTracking);
+                _tracking.State.TargetName, _tracking.State.IsTracking,
+                eq?.RightAscension.Degrees, eq?.Declination.Degrees);
         }
 
         await base.OnConnectedAsync();

@@ -32,11 +32,30 @@ btnStopTrack.addEventListener("click", () => {
     connection.invoke("StopTracking").catch(err => console.error(err));
 });
 
-connection.on("PositionUpdate", (alt, az, targetName, isTracking) => {
+connection.on("PositionUpdate", (alt, az, targetName, isTracking, raDeg, decDeg) => {
     document.getElementById("pos-alt").textContent = alt.toFixed(4) + "\u00B0";
     document.getElementById("pos-az").textContent = az.toFixed(4) + "\u00B0";
     document.getElementById("pos-target").textContent = targetName || "--";
+    document.getElementById("pos-ra").textContent = raDeg != null ? degreesToHMS(raDeg) : "--";
+    document.getElementById("pos-dec").textContent = decDeg != null ? degreesToDMS(decDeg) : "--";
 });
+
+function degreesToHMS(deg) {
+    const h = deg / 15;
+    const hh = Math.floor(h);
+    const mm = Math.floor((h - hh) * 60);
+    const ss = ((h - hh) * 60 - mm) * 60;
+    return `${String(hh).padStart(2, '0')}h${String(mm).padStart(2, '0')}m${ss.toFixed(1).padStart(4, '0')}s`;
+}
+
+function degreesToDMS(deg) {
+    const sign = deg < 0 ? "-" : "+";
+    const abs = Math.abs(deg);
+    const dd = Math.floor(abs);
+    const mm = Math.floor((abs - dd) * 60);
+    const ss = ((abs - dd) * 60 - mm) * 60;
+    return `${sign}${String(dd).padStart(2, '0')}\u00B0${String(mm).padStart(2, '0')}'${ss.toFixed(0).padStart(2, '0')}"`;
+}
 
 connection.on("TrackingStatus", (isTracking) => {
     btnTrack.style.display = isTracking ? "none" : "";

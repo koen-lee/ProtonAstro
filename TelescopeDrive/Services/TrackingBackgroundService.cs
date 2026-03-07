@@ -163,7 +163,9 @@ public class TrackingBackgroundService : BackgroundService
         state.LastCommandedPosition = expectedFuture;
         state.LastUpdateTime = now;
 
+        var eq = state.TargetFunc!(now);
         await _hub.Clients.All.SendAsync("PositionUpdate",
-            targetAlt, targetAz, state.TargetName, true, ct);
+            targetAlt, targetAz, state.TargetName, true,
+            eq.RightAscension.Degrees, eq.Declination.Degrees, ct);
     }
 }
