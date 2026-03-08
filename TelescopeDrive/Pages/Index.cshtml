@@ -16,10 +16,19 @@
         <option value="Betelgeuse">Betelgeuse</option>
         <option value="Rigel">Rigel</option>
         <option value="Aldebaran">Aldebaran</option>
+        <option value="Canopus">Canopus</option>
+        <option value="Achernar">Achernar</option>
+        <option value="Alpha Centauri">Alpha Centauri</option>
+        <option value="Acrux">Acrux</option>
         <option value="M1 - Crab Nebula">M1 - Crab Nebula</option>
         <option value="M31 - Andromeda">M31 - Andromeda</option>
         <option value="M42 - Orion Nebula">M42 - Orion Nebula</option>
         <option value="M45 - Pleiades">M45 - Pleiades</option>
+        <option value="LMC - Large Magellanic Cloud">LMC - Large Magellanic Cloud</option>
+        <option value="SMC - Small Magellanic Cloud">SMC - Small Magellanic Cloud</option>
+        <option value="NGC 5139 - Omega Centauri">NGC 5139 - Omega Centauri</option>
+        <option value="NGC 3372 - Eta Carinae Nebula">NGC 3372 - Eta Carinae Nebula</option>
+        <option value="NGC 5128 - Centaurus A">NGC 5128 - Centaurus A</option>
         <option value="Sun">Sun</option>
         <option value="Custom">Custom Coordinates</option>
     </select>
@@ -45,11 +54,14 @@
 
 <div class="card">
     <h2>Current Position</h2>
-    <div class="position-display">
-        <div>Altitude: <span class="value" id="pos-alt">--</span></div>
-        <div>Azimuth: <span class="value" id="pos-az">--</span></div>
-        <div>Target: <span id="pos-target">--</span></div>
-        <div>RA: <span class="value" id="pos-ra">--</span> &nbsp; Dec: <span class="value" id="pos-dec">--</span></div>
+    <div class="position-card-body">
+        <div class="position-display">
+            <div>Altitude: <span class="value" id="pos-alt">--</span></div>
+            <div>Azimuth: <span class="value" id="pos-az">--</span></div>
+            <div>Target: <span id="pos-target">--</span></div>
+            <div>RA: <span class="value" id="pos-ra">--</span> &nbsp; Dec: <span class="value" id="pos-dec">--</span></div>
+        </div>
+        <canvas id="sky-map" width="180" height="180" title="Sky map — center is zenith, edge is horizon"></canvas>
     </div>
 
     <div class="btn-row" style="margin-top:1rem;">
