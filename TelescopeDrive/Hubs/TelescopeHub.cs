@@ -25,6 +25,9 @@ public class TelescopeHub : Hub
         await Clients.Caller.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort, _serial.IsSimulated);
         await Clients.Caller.SendAsync("TrackingStatus", _tracking.State.IsTracking);
         await Clients.Caller.SendAsync("AlignmentModelStatus", _alignment.Points.Count);
+        await Clients.Caller.SendAsync("ObserverLocationSet",
+            _tracking.Observer.Latitude.Degrees,
+            _tracking.Observer.Longitude.Degrees);
 
         await BroadcastPositionAsync(Clients.Caller);
 

@@ -207,6 +207,8 @@ button.step-btn.active { border: 3px solid var(--accent); background: #1a4a8a; }
     gap: 1.5rem;
     flex-wrap: wrap;
 }
+.position-display { flex: 1; }
+#sky-map { flex-shrink: 0; margin-left: auto; }
 
 #sky-map {
     flex-shrink: 0;

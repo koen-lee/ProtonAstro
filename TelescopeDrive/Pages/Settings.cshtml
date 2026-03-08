@@ -33,9 +33,8 @@
 
 <div class="card">
     <h2>Observer Location</h2>
-    <p id="geo-status" style="color: var(--text-dim); margin-bottom:0.5rem;">
-        Location is auto-detected from browser. Override below if needed.
-    </p>
+    <p style="color: var(--text-dim); margin-bottom:0.25rem;">Active on server</p>
+    <p id="obs-active" style="font-family: monospace; margin-bottom:1rem;">--</p>
     <div class="inline-group">
         <div>
             <label for="obs-lat">Latitude</label>
@@ -50,6 +49,7 @@
         <button id="btn-set-location">Set Location</button>
         <button id="btn-use-gps">Use Browser Geolocation</button>
     </div>
+    <p id="geo-status" style="color: var(--text-dim); margin-top:0.5rem; margin-bottom:0;"></p>
 </div>
 
 @section Scripts {
@@ -92,7 +92,6 @@
             const lon = parseFloat(document.getElementById("obs-lon").value);
             if (isNaN(lat) || isNaN(lon)) return;
             connection.invoke("SetObserverLocation", lat, lon).catch(err => console.error(err));
-            document.getElementById("geo-status").textContent = "Location set to " + lat.toFixed(4) + ", " + lon.toFixed(4);
         });
 
         document.getElementById("btn-use-gps").addEventListener("click", () => {
@@ -102,12 +101,9 @@
             }
             navigator.geolocation.getCurrentPosition(
                 pos => {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    document.getElementById("obs-lat").value = lat.toFixed(4);
-                    document.getElementById("obs-lon").value = lon.toFixed(4);
-                    connection.invoke("SetObserverLocation", lat, lon).catch(err => console.error(err));
-                    document.getElementById("geo-status").textContent = "Location set from GPS: " + lat.toFixed(4) + ", " + lon.toFixed(4);
+                    document.getElementById("obs-lat").value = pos.coords.latitude.toFixed(4);
+                    document.getElementById("obs-lon").value = pos.coords.longitude.toFixed(4);
+                    document.getElementById("geo-status").textContent = "Browser location loaded — press Set Location to apply.";
                 },
                 err => {
                     document.getElementById("geo-status").textContent = "Geolocation error: " + err.message;
@@ -116,8 +112,10 @@
         });
 
         connection.on("ObserverLocationSet", (lat, lon) => {
+            document.getElementById("obs-active").textContent = lat.toFixed(4) + "\u00B0, " + lon.toFixed(4) + "\u00B0";
             document.getElementById("obs-lat").value = lat.toFixed(4);
             document.getElementById("obs-lon").value = lon.toFixed(4);
+            document.getElementById("geo-status").textContent = "";
         });
 
         // Auto-refresh ports on page load once connected
