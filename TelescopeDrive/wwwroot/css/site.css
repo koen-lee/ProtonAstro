@@ -101,6 +101,7 @@ button:hover, .btn:hover { background: var(--accent); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.danger { background: var(--accent); }
 button.success { background: var(--success); color: #000; }
+button.step-btn.active { border: 3px solid var(--accent); background: #1a4a8a; }
 
 .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0.5rem 0; }
 

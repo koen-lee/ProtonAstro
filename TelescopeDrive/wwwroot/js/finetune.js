@@ -24,8 +24,20 @@ document.getElementById("adoptBtn").addEventListener("click", () => {
         .catch(err => console.error(err));
 });
 
-// Keyboard arrow support
 document.addEventListener("keydown", e => {
+    const stepKeys = { "1": 0, "2": 1, "3": 2, "4": 3, "5": 4 };
+    if (e.key in stepKeys) {
+        const btns = document.querySelectorAll(".step-btn");
+        const idx = stepKeys[e.key];
+        if (btns[idx]) btns[idx].click();
+        return;
+    }
+
+    if (e.key === "Enter") {
+        document.getElementById("adoptBtn").click();
+        return;
+    }
+
     const map = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
     const dir = map[e.key];
     if (dir && !e.repeat) {

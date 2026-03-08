@@ -21,21 +21,24 @@
         <option value="M42 - Orion Nebula">M42 - Orion Nebula</option>
         <option value="M45 - Pleiades">M45 - Pleiades</option>
         <option value="Sun">Sun</option>
+        <option value="Custom">Custom Coordinates</option>
     </select>
 
     <div id="sun-warning" class="warning-box" style="display:none;">
         Warning: Never observe the Sun without a proper solar filter!
     </div>
 
-    <h2>Custom Coordinates</h2>
-    <div class="inline-group">
-        <div>
-            <label for="custom-ra">Right Ascension (HH:MM:SS)</label>
-            <input type="text" id="custom-ra" placeholder="18:36:56.3" />
-        </div>
-        <div>
-            <label for="custom-dec">Declination (DDdMMmSSs)</label>
-            <input type="text" id="custom-dec" placeholder="38d47m01s" />
+    <div id="custom-coords-section" style="display:none;">
+        <h2>Custom Coordinates</h2>
+        <div class="inline-group">
+            <div>
+                <label for="custom-ra">Right Ascension (HH:MM:SS)</label>
+                <input type="text" id="custom-ra" placeholder="18:36:56.3" />
+            </div>
+            <div>
+                <label for="custom-dec">Declination (DDdMMmSSs)</label>
+                <input type="text" id="custom-dec" placeholder="38d47m01s" />
+            </div>
         </div>
     </div>
 </div>
@@ -51,7 +54,6 @@
 
     <div class="btn-row" style="margin-top:1rem;">
         <button id="btn-goto">Goto Target</button>
-        <button id="btn-goto-custom">Goto Custom</button>
         <button id="btn-track" class="success">Start Tracking</button>
         <button id="btn-stop-track" class="danger" style="display:none;">Stop Tracking</button>
     </div>
