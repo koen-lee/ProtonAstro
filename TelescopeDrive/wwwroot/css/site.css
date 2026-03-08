@@ -193,3 +193,40 @@ button.step-btn.active { border: 3px solid var(--accent); background: #1a4a8a; }
     margin: 0.5rem 0;
     font-size: 0.9rem;
 }
+
+/* Sky map */
+:root {
+    --sky-bg: #0d0d1a;
+    --sky-ring: #1a3a6a;
+    --sky-horizon: #1f4a8a;
+}
+
+.position-card-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+#sky-map {
+    flex-shrink: 0;
+    overflow: visible;
+}
+
+.sky-bg   { fill: var(--sky-bg); }
+.sky-ring { fill: none; stroke: var(--sky-ring); stroke-width: 1; }
+.sky-horizon { fill: none; stroke: var(--sky-horizon); stroke-width: 1.5; }
+.sky-axis { stroke: var(--sky-ring); stroke-width: 0.5; }
+.sky-label {
+    fill: var(--text-dim);
+    font: 9px 'Segoe UI', system-ui, sans-serif;
+    text-anchor: middle;
+    dominant-baseline: middle;
+}
+.sky-dot {
+    fill: var(--accent);
+    filter: drop-shadow(0 0 5px var(--accent));
+    opacity: 0;
+    transition: cx 0.3s ease, cy 0.3s ease, opacity 0.3s ease;
+}
+.sky-dot.visible { opacity: 1; }

@@ -1,4 +1,5 @@
 const catalogSelect = document.getElementById("catalog-select");
+const scopeDot = document.getElementById("scope-dot");
 const sunWarning = document.getElementById("sun-warning");
 const customCoordsSection = document.getElementById("custom-coords-section");
 const btnGoto = document.getElementById("btn-goto");
@@ -40,6 +41,7 @@ connection.on("PositionUpdate", (alt, az, targetName, isTracking, raDeg, decDeg)
     document.getElementById("pos-target").textContent = targetName || "--";
     document.getElementById("pos-ra").textContent = raDeg != null ? degreesToHMS(raDeg) : "--";
     document.getElementById("pos-dec").textContent = decDeg != null ? degreesToDMS(decDeg) : "--";
+    updateSkyDot(alt, az);
 });
 
 function degreesToHMS(deg) {
@@ -57,6 +59,18 @@ function degreesToDMS(deg) {
     const mm = Math.floor((abs - dd) * 60);
     const ss = ((abs - dd) * 60 - mm) * 60;
     return `${sign}${String(dd).padStart(2, '0')}\u00B0${String(mm).padStart(2, '0')}'${ss.toFixed(0).padStart(2, '0')}"`;
+}
+
+function updateSkyDot(alt, az) {
+    if (!scopeDot) return;
+    const visible = alt != null && az != null && alt >= 0;
+    scopeDot.classList.toggle("visible", visible);
+    if (visible) {
+        const r = 80 * (1 - alt / 90);
+        const angle = (az - 90) * Math.PI / 180;
+        scopeDot.style.cx = 90 + r * Math.cos(angle);
+        scopeDot.style.cy = 90 + r * Math.sin(angle);
+    }
 }
 
 connection.on("TrackingStatus", (isTracking) => {

@@ -61,7 +61,30 @@
             <div>Target: <span id="pos-target">--</span></div>
             <div>RA: <span class="value" id="pos-ra">--</span> &nbsp; Dec: <span class="value" id="pos-dec">--</span></div>
         </div>
-        <canvas id="sky-map" width="180" height="180" title="Sky map — center is zenith, edge is horizon"></canvas>
+        <svg id="sky-map" viewBox="0 0 180 180" width="180" height="180" xmlns="http://www.w3.org/2000/svg" aria-label="Sky map — center is zenith, edge is horizon">
+            <defs>
+                <clipPath id="sky-clip">
+                    <circle cx="90" cy="90" r="80"/>
+                </clipPath>
+            </defs>
+            <g clip-path="url(#sky-clip)">
+                <circle cx="90" cy="90" r="80" class="sky-bg"/>
+                <circle cx="90" cy="90" r="53.3" class="sky-ring"/>
+                <circle cx="90" cy="90" r="26.7" class="sky-ring"/>
+                <line x1="90" y1="10" x2="90" y2="170" class="sky-axis"/>
+                <line x1="10" y1="90" x2="170" y2="90" class="sky-axis"/>
+                <circle id="scope-dot" cx="90" cy="90" r="4" class="sky-dot"/>
+            </g>
+            <circle cx="90" cy="90" r="80" class="sky-horizon"/>
+            <text x="90"  y="2"   class="sky-label">N</text>
+            <text x="152" y="28"  class="sky-label">NE</text>
+            <text x="178" y="90"  class="sky-label">E</text>
+            <text x="152" y="152" class="sky-label">SE</text>
+            <text x="90"  y="178" class="sky-label">S</text>
+            <text x="28"  y="152" class="sky-label">SW</text>
+            <text x="2"   y="90"  class="sky-label">W</text>
+            <text x="28"  y="28"  class="sky-label">NW</text>
+        </svg>
     </div>
 
     <div class="btn-row" style="margin-top:1rem;">
