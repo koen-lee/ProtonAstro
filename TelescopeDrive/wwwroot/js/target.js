@@ -110,7 +110,7 @@ function updateSkyDot(alt, az) {
         scopeDot.style.cy = 90 + r * Math.sin(angle);
     }
     const titleEl = document.getElementById("scope-dot-title");
-    if (titleEl) titleEl.textContent = `Alt ${alt.toFixed(2)}\u00B0  Az ${az.toFixed(2)}\u00B0`;
+    if (titleEl) titleEl.textContent = `Telescope is pointing at\nAlt ${alt.toFixed(2)}\u00B0  Az ${az.toFixed(2)}\u00B0`;
 }
 
 connection.on("TrackingStatus", (isTracking) => {

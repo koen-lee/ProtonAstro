@@ -69,6 +69,17 @@
     </div>
 </div>
 
+<div class="card warning-box" id="clock-skew-warning" style="display:none;">
+    <h2>Clock Skew Detected</h2>
+    <p>Your browser's clock differs from the server by more than 30 seconds.
+       Calibration relies on accurate UTC time to convert between equatorial and horizon coordinates &mdash; a skewed clock will produce incorrect pointing.</p>
+    <div class="position-display">
+        <div>Server time: <span class="value" id="clock-server-time">--</span></div>
+        <div>Browser time: <span class="value" id="clock-browser-time">--</span></div>
+    </div>
+    <p>Please sync whichever clock is incorrect before calibrating.</p>
+</div>
+
 <div class="card">
     <h2>Manual Star Alignment</h2>
     <p>Point the telescope at a known bright star, then select it below and press Calibrate.

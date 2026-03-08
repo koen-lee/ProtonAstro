@@ -1,3 +1,15 @@
+fetch(location.href, { method: "HEAD" }).then(r => {
+    const serverDate = r.headers.get("Date");
+    if (!serverDate) return;
+    const serverTime = new Date(serverDate);
+    const browserTime = new Date();
+    const skewMs = Math.abs(browserTime - serverTime);
+    const warn = document.getElementById("clock-skew-warning");
+    warn.style.display = skewMs > 30_000 ? "block" : "none";
+    document.getElementById("clock-server-time").textContent = serverTime.toUTCString();
+    document.getElementById("clock-browser-time").textContent = browserTime.toUTCString();
+});
+
 document.getElementById("btn-calibrate").addEventListener("click", () => {
     const star = document.getElementById("cal-star").value;
     if (!star) return;
