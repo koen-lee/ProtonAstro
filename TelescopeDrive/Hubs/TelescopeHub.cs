@@ -58,9 +58,9 @@ public class TelescopeHub : Hub
 
     public async Task Goto(string targetKey)
     {
-        if (targetKey == "Sun")
+        if (SolarSystem.TryGetBody(targetKey, out var bodyFunc))
         {
-            _tracking.SetTarget(Catalog.Sun, "Sun");
+            _tracking.SetTarget(bodyFunc, targetKey);
         }
         else
         {

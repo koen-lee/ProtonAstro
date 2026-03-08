@@ -29,7 +29,7 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
             {
                 // Use simulated G-code (no serial port) and a non-null solver path
                 // to pass the null-check in the page model
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
+                cfg.AddInMemoryCollection(new Dictionary<string, string>
                 {
                     ["Observer:SerialPort"] = "simulated",
                     ["PlateSolver:QuadDatabasePath"] = "test",

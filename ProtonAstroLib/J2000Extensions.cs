@@ -41,7 +41,7 @@ namespace ProtonAstroLib
             // Mean longitude of the Sun at J2000: 280.4600°
             var meanLongitude = Angle.FromDegrees(280.4600 + 0.9856474 * D);
             // Apparent sun RA from the solar position model
-            var sunRA = Catalog.Sun(moment).RightAscension;
+            var sunRA = SolarSystem.Sun(moment).RightAscension;
             // EoT = mean solar RA - apparent solar RA
             var diff = (meanLongitude - sunRA).SymmetricNormalized;
 

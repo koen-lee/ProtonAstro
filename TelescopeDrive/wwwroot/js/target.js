@@ -10,7 +10,7 @@ const trackingLabel = document.getElementById("tracking-label");
 
 catalogSelect.addEventListener("change", () => {
     const val = catalogSelect.value;
-    sunWarning.style.display = val === "Sun" ? "block" : "none";
+    sunWarning.style.display = ["Sun", "Mercury", "Venus"].includes(val) ? "block" : "none";
     customCoordsSection.style.display = val === "Custom" ? "block" : "none";
 });
 

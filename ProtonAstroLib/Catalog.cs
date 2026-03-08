@@ -1,5 +1,3 @@
-using System;
-
 namespace ProtonAstroLib
 {
     public static class Catalog
@@ -29,35 +27,5 @@ namespace ProtonAstroLib
         public static readonly EquatorialCoordinate EtaCarinaeNebula = EquatorialCoordinate.FromRaDec("10:43:50", "-59d52m04s");
         public static readonly EquatorialCoordinate CentaurusA = EquatorialCoordinate.FromRaDec("13:25:28", "-43d01m09s");
 
-        /// <summary>
-        /// Computes the Sun's equatorial coordinates (equinox-of-date) for a given moment.
-        /// Low-accuracy solar position (~0.01°) using the algorithm from
-        /// the Astronomical Almanac, sufficient for pointing a Dobson or solar oven.
-        /// </summary>
-        public static EquatorialCoordinate Sun(DateTimeOffset moment)
-        {
-            // Days since J2000.0 noon UT
-            var D = moment.Subtract(Constants.J2000Noon_UT).TotalDays;
-
-            // Mean anomaly (degrees)
-            var M = Angle.FromDegrees(357.5291 + 0.98560028 * D);
-            // Equation of center
-            var C = Angle.FromDegrees(1.9148) * Angle.Sin(M)
-                  + Angle.FromDegrees(0.0200) * Angle.Sin(M * 2)
-                  + Angle.FromDegrees(0.0003) * Angle.Sin(M * 3);
-            // Ecliptic longitude: mean anomaly + center + perihelion longitude + 180°
-            var lambda = M + C + Angle.FromDegrees(282.9372);
-
-            // Obliquity of the ecliptic
-            var epsilon = Angle.FromDegrees(23.4393 - 0.0000004 * D);
-
-            // Ecliptic to equatorial (ecliptic latitude β ≈ 0 for the Sun)
-            var sinLambda = Angle.Sin(lambda);
-            var cosLambda = Angle.Cos(lambda);
-            var ra = (Angle)Math.Atan2(Angle.Cos(epsilon) * sinLambda, cosLambda);
-            var dec = (Angle)Math.Asin(Angle.Sin(epsilon) * sinLambda);
-
-            return new EquatorialCoordinate(ra, dec, moment);
-        }
     }
 }

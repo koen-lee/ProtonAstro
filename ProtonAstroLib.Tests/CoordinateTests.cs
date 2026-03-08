@@ -126,7 +126,7 @@ namespace ProtonAstroLib.Tests
         {
             // 2024 summer solstice: June 20 20:51 UTC
             var solstice = new DateTimeOffset(2024, 6, 20, 20, 51, 0, TimeSpan.Zero);
-            var sun = Catalog.Sun(solstice);
+            var sun = SolarSystem.Sun(solstice);
 
             Assert.Equal(23.44, sun.Declination.Degrees, 0.5);
         }
@@ -136,7 +136,7 @@ namespace ProtonAstroLib.Tests
         {
             // 2024 winter solstice: December 21 09:20 UTC
             var solstice = new DateTimeOffset(2024, 12, 21, 9, 20, 0, TimeSpan.Zero);
-            var sun = Catalog.Sun(solstice);
+            var sun = SolarSystem.Sun(solstice);
 
             Assert.Equal(-23.44, sun.Declination.Degrees, 0.5);
         }
@@ -146,7 +146,7 @@ namespace ProtonAstroLib.Tests
         {
             // 2024 vernal equinox: March 20 03:06 UTC
             var equinox = new DateTimeOffset(2024, 3, 20, 3, 6, 0, TimeSpan.Zero);
-            var sun = Catalog.Sun(equinox);
+            var sun = SolarSystem.Sun(equinox);
 
             Assert.Equal(0, sun.Declination.Degrees, 0.5);
         }
@@ -158,7 +158,7 @@ namespace ProtonAstroLib.Tests
             // Solar noon ≈ 12:00 UTC - longitude/15 hours. Maassluis is at ~4.26°E,
             // so solar noon ≈ 11:43 UTC. On the equinox, noon sun altitude ≈ 90° - latitude ≈ 38°.
             var equinox = new DateTimeOffset(2024, 3, 20, 11, 43, 0, TimeSpan.Zero);
-            var sun = Catalog.Sun(equinox);
+            var sun = SolarSystem.Sun(equinox);
             var result = sun.GetHorizontalCoordinate(equinox, Maassluis);
 
             AssertAngleEqual(Angle.FromDegrees(180), result.Azimuth, toleranceDegrees: 2);
@@ -171,7 +171,7 @@ namespace ProtonAstroLib.Tests
         {
             // Sun coordinates are equinox-of-date, so PrecessionCorrected should be a no-op
             var moment = new DateTimeOffset(2024, 6, 20, 12, 0, 0, TimeSpan.Zero);
-            var sun = Catalog.Sun(moment);
+            var sun = SolarSystem.Sun(moment);
             var precessed = sun.PrecessionCorrected(moment);
 
             Assert.Equal(sun.RightAscension.Degrees, precessed.RightAscension.Degrees, 10);
