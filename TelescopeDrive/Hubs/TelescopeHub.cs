@@ -94,6 +94,7 @@ public class TelescopeHub : Hub
     {
         _tracking.StartTracking();
         await Clients.All.SendAsync("TrackingStatus", true);
+        await BroadcastPositionAsync(Clients.All);
     }
 
     public async Task StopTracking()

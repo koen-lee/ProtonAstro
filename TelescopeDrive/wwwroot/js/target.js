@@ -64,8 +64,8 @@ function degreesToDMS(deg) {
     return `${sign}${String(dd).padStart(2, '0')}\u00B0${String(mm).padStart(2, '0')}'${ss.toFixed(0).padStart(2, '0')}"`;
 }
 
-function updateOrientationStars(stars) { updateSkyDots("orientation-stars", stars, "orientation-star-dot", 1.5); }
-function updateTrackingDots(list)      { updateSkyDots("tracking-hour-dots", list,  "tracking-hour-dot",   3);   }
+function updateOrientationStars(stars) { updateSkyDots("orientation-stars", stars, "orientation-star-dot", 1); }
+function updateTrackingDots(list)      { updateSkyDots("tracking-hour-dots", list,  "tracking-hour-dot",   2);   }
 
 function updateSkyDots(groupId, points, cssClass, radius) {
     const g = document.getElementById(groupId);
