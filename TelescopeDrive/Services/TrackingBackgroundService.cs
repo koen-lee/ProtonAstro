@@ -111,20 +111,18 @@ public class TrackingBackgroundService : BackgroundService
         var (corrNowAlt, corrNowAz) = _alignment.GetCorrection(expectedNow);
         var (corrFutAlt, corrFutAz) = _alignment.GetCorrection(expectedFuture);
 
-        var motorNowAlt = expectedNow.Altitude.Degrees - corrNowAlt.Degrees;
-        var motorNowAz  = expectedNow.Azimuth.Degrees  - corrNowAz.Degrees;
-        var targetAlt   = expectedFuture.Altitude.Degrees - corrFutAlt.Degrees;
-        var targetAz    = expectedFuture.Azimuth.Degrees  - corrFutAz.Degrees;
+        var motorNowAlt = expectedNow.Altitude - corrNowAlt;
+        var motorNowAz  = expectedNow.Azimuth  - corrNowAz;
+        var targetAlt   = expectedFuture.Altitude - corrFutAlt;
+        var targetAz    = expectedFuture.Azimuth  - corrFutAz;
 
         ct.ThrowIfCancellationRequested();
 
         // Nominal feedrate: angular distance in sky-space over interval
-        var dAlt = expectedFuture.Altitude.Degrees - expectedNow.Altitude.Degrees;
-        var dAz = expectedFuture.Azimuth.Degrees - expectedNow.Azimuth.Degrees;
-        if (dAz > 180) dAz -= 360;
-        if (dAz < -180) dAz += 360;
-        var nominalDistance = Math.Sqrt(dAlt * dAlt + dAz * dAz);
-        // feedrate is in degrees per minute, so convert interval from ms to min
+        // Unit is degrees per minute because our GCode has X/Y in degrees
+        var nominalDistance = AngularDistance(expectedFuture.Altitude - expectedNow.Altitude,
+                                              expectedFuture.Azimuth  - expectedNow.Azimuth);
+        // convert interval from ms to min
         var nominalFeedrate = nominalDistance / moveInterval.TotalMinutes;
 
         // Query controller's actual realtime position for error correction.
@@ -136,20 +134,14 @@ public class TrackingBackgroundService : BackgroundService
 
         if (actualPos is var (actualAltAngle, actualAzAngle))
         {
-            var actualAlt = actualAltAngle.Degrees;
-            var actualAz  = actualAzAngle.Degrees;
+            var actualAlt = actualAltAngle;
+            var actualAz  = actualAzAngle;
             var errAlt = actualAlt - motorNowAlt;
             var errAz = actualAz - motorNowAz;
-            if (errAz > 180) errAz -= 360;
-            if (errAz < -180) errAz += 360;
-            var errorDistance = Math.Sqrt(errAlt * errAlt + errAz * errAz);
+            var errorDistance = AngularDistance(errAlt, errAz);
 
             // Adjust feedrate so the move from actual→future_target takes exactly moveInterval
-            var moveAlt = targetAlt - actualAlt;
-            var moveAz = targetAz - actualAz;
-            if (moveAz > 180) moveAz -= 360;
-            if (moveAz < -180) moveAz += 360;
-            var moveDistance = Math.Sqrt(moveAlt * moveAlt + moveAz * moveAz);
+            var moveDistance = AngularDistance(targetAlt - actualAlt, targetAz - actualAz);
             feedrate = moveDistance / moveInterval.TotalMinutes;
 
             _logger.LogDebug(
@@ -167,10 +159,10 @@ public class TrackingBackgroundService : BackgroundService
 
         if (state.LastCommandedPosition is null)
         {
-            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(motorNowAlt, motorNowAz));
+            await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(motorNowAlt.Degrees, motorNowAz.Degrees));
         }
 
-        await _gcode.SendCommandAsync(GCodeCommand.TrackedMove(targetAlt, targetAz, feedrate));
+        await _gcode.SendCommandAsync(GCodeCommand.TrackedMove(targetAlt.Degrees, targetAz.Degrees, feedrate));
 
         state.LastCommandedPosition = expectedFuture;
         state.LastUpdateTime = now;
@@ -180,5 +172,19 @@ public class TrackingBackgroundService : BackgroundService
             expectedFuture.Altitude.Degrees, expectedFuture.Azimuth.Degrees,
             state.TargetName, true,
             eq.RightAscension.Degrees, eq.Declination.Degrees, ct);
+    }
+
+    /// <summary>
+    /// Pythagorean angular distance in degrees from two axis deltas.
+    /// Uses SymmetricNormalized to handle wrap correctly.
+    /// </summary>
+    private static double AngularDistance(ProtonAstroLib.Angle dAlt, ProtonAstroLib.Angle dAz)
+    {
+        var alt = dAlt.SymmetricNormalized.Degrees;
+        var az  = dAz.SymmetricNormalized.Degrees;
+        var result = Math.Sqrt(alt * alt + az * az);
+        if( result > 45)
+            throw new InvalidOperationException($"Pythagorean approximation is invalid for large angles: {result} degrees (dAlt {alt}, dAz {az})");
+        return result;
     }
 }

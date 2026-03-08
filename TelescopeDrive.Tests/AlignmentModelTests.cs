@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using ProtonAstroLib;
 using TelescopeDrive.Models;
 using TelescopeDrive.Services;
 using Xunit;
@@ -22,14 +23,17 @@ public class AlignmentModelTests : IDisposable
     private static AlignmentPoint P(double alt, double az, double dAlt, double dAz) =>
         new(alt, az, dAlt, dAz, DateTimeOffset.UtcNow);
 
+    private static HorizontalCoordinate H(double alt, double az) =>
+        new(Angle.FromDegrees(alt), Angle.FromDegrees(az));
+
     // ── GetCorrection: edge cases ─────────────────────────────────────────
 
     [Fact]
     public void GetCorrection_NoPoints_ReturnsZero()
     {
-        var (dAlt, dAz) = Create().GetCorrection(45.0, 180.0);
-        Assert.Equal(0.0, dAlt);
-        Assert.Equal(0.0, dAz);
+        var (dAlt, dAz) = Create().GetCorrection(H(45.0, 180.0));
+        Assert.Equal(0.0, dAlt.Degrees);
+        Assert.Equal(0.0, dAz.Degrees);
     }
 
     [Fact]
@@ -39,9 +43,9 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(30.0, 90.0, 0.5, -0.3));
 
         // Query at a completely different sky position — single-point acts like a global offset
-        var (dAlt, dAz) = model.GetCorrection(60.0, 270.0);
-        Assert.Equal(0.5, dAlt);
-        Assert.Equal(-0.3, dAz);
+        var (dAlt, dAz) = model.GetCorrection(H(60.0, 270.0));
+        Assert.Equal(0.5, dAlt.Degrees);
+        Assert.Equal(-0.3, dAz.Degrees);
     }
 
     [Fact]
@@ -52,9 +56,9 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(30.0, 90.0,  0.5,  0.2));
 
         // Querying exactly at a calibration point triggers the singularity guard
-        var (dAlt, dAz) = model.GetCorrection(45.0, 180.0);
-        Assert.Equal(1.2, dAlt, precision: 6);
-        Assert.Equal(-0.8, dAz, precision: 6);
+        var (dAlt, dAz) = model.GetCorrection(H(45.0, 180.0));
+        Assert.Equal(1.2, dAlt.Degrees, precision: 6);
+        Assert.Equal(-0.8, dAz.Degrees, precision: 6);
     }
 
     // ── GetCorrection: IDW weighting ──────────────────────────────────────
@@ -68,8 +72,8 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(30.0, 0.0,  1.0, 0.0));
         model.AddPoint(P(60.0, 0.0, -1.0, 0.0));
 
-        var (dAlt, _) = model.GetCorrection(45.0, 0.0);
-        Assert.Equal(0.0, dAlt, precision: 10);
+        var (dAlt, _) = model.GetCorrection(H(45.0, 0.0));
+        Assert.Equal(0.0, dAlt.Degrees, precision: 10);
     }
 
     [Fact]
@@ -81,8 +85,8 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(30.0, 0.0, 1.0, 0.0));  // near query
         model.AddPoint(P(80.0, 0.0, 0.0, 0.0));  // far from query
 
-        var (dAlt, _) = model.GetCorrection(30.1, 0.0);
-        Assert.True(dAlt > 0.9, $"Expected correction close to 1.0, got {dAlt:F6}");
+        var (dAlt, _) = model.GetCorrection(H(30.1, 0.0));
+        Assert.True(dAlt.Degrees > 0.9, $"Expected correction close to 1.0, got {dAlt.Degrees:F6}");
     }
 
     [Fact]
@@ -94,8 +98,8 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(20.0, 120.0, 1.0, 0.0));
         model.AddPoint(P(20.0, 240.0, 1.0, 0.0));
 
-        var (dAlt, _) = model.GetCorrection(60.0, 60.0);
-        Assert.Equal(1.0, dAlt, precision: 6);
+        var (dAlt, _) = model.GetCorrection(H(60.0, 60.0));
+        Assert.Equal(1.0, dAlt.Degrees, precision: 6);
     }
 
     // ── GetCorrection: azimuth wrap-around ────────────────────────────────
@@ -110,8 +114,8 @@ public class AlignmentModelTests : IDisposable
         model.AddPoint(P(45.0, 358.0, 0.0, -2.0));
         model.AddPoint(P(45.0,   2.0, 0.0,  2.0));
 
-        var (_, dAz) = model.GetCorrection(45.0, 0.0);
-        Assert.Equal(0.0, dAz, precision: 10);
+        var (_, dAz) = model.GetCorrection(H(45.0, 0.0));
+        Assert.Equal(0.0, dAz.Degrees, precision: 10);
     }
 
     [Fact]
@@ -129,10 +133,10 @@ public class AlignmentModelTests : IDisposable
         // Note: AddAlignmentPoint in the hub normalises to [-180, 180] before storing,
         // so this tests what happens if data were stored without normalisation.
         // The circular mean correctly maps 358° to ~-2°.
-        var (_, dAz) = model.GetCorrection(45.0, 45.0);
+        var (_, dAz) = model.GetCorrection(H(45.0, 45.0));
         // atan2(sin(358°_rad), cos(358°_rad)) ≈ -2°
-        Assert.True(dAz < -1.0 && dAz > -3.0,
-            $"Expected az correction near -2° (circular mean of 358°), got {dAz:F4}°");
+        Assert.True(dAz.Degrees < -1.0 && dAz.Degrees > -3.0,
+            $"Expected az correction near -2° (circular mean of 358°), got {dAz.Degrees:F4}°");
     }
 
     // ── Mutation: Clear ───────────────────────────────────────────────────
@@ -147,9 +151,9 @@ public class AlignmentModelTests : IDisposable
         model.Clear();
 
         Assert.Empty(model.Points);
-        var (dAlt, dAz) = model.GetCorrection(45.0, 90.0);
-        Assert.Equal(0.0, dAlt);
-        Assert.Equal(0.0, dAz);
+        var (dAlt, dAz) = model.GetCorrection(H(45.0, 90.0));
+        Assert.Equal(0.0, dAlt.Degrees);
+        Assert.Equal(0.0, dAz.Degrees);
     }
 
     // ── Thread safety ─────────────────────────────────────────────────────
@@ -218,8 +222,8 @@ public class AlignmentModelTests : IDisposable
         var model = Create();
 
         Assert.Empty(model.Points);
-        var (dAlt, dAz) = model.GetCorrection(45.0, 90.0);
-        Assert.Equal(0.0, dAlt);
-        Assert.Equal(0.0, dAz);
+        var (dAlt, dAz) = model.GetCorrection(H(45.0, 90.0));
+        Assert.Equal(0.0, dAlt.Degrees);
+        Assert.Equal(0.0, dAz.Degrees);
     }
 }
