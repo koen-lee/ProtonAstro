@@ -45,7 +45,7 @@ public class TrackingState
     public AltAzDeg[] GetTrackingList(DateTimeOffset now, WGS84Coordinate observer)
     {
         var startHour = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, 0, 0, now.Offset);
-        return Enumerable.Range(-12, 25)
+        return Enumerable.Range(-11, 24)
             .Select(h => (Hour: startHour.AddHours(h), H: h))
             .Select(x => (Pos: GetTargetPosition(x.Hour, observer), Label: x.Hour.ToString("HH:mm") + " UTC"))
             .Where(x => x.Pos.Altitude.Degrees >= 0)

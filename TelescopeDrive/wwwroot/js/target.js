@@ -109,6 +109,8 @@ function updateSkyDot(alt, az) {
         scopeDot.style.cx = 90 + r * Math.cos(angle);
         scopeDot.style.cy = 90 + r * Math.sin(angle);
     }
+    const titleEl = document.getElementById("scope-dot-title");
+    if (titleEl) titleEl.textContent = `Alt ${alt.toFixed(2)}\u00B0  Az ${az.toFixed(2)}\u00B0`;
 }
 
 connection.on("TrackingStatus", (isTracking) => {

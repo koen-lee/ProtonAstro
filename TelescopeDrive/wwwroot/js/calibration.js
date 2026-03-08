@@ -10,4 +10,7 @@ connection.on("CalibrationComplete", (starName, alt, az) => {
     document.getElementById("cal-star-name").textContent = starName;
     document.getElementById("cal-alt").textContent = alt.toFixed(4) + "\u00B0";
     document.getElementById("cal-az").textContent = az.toFixed(4) + "\u00B0";
+
+    const warn = document.getElementById("cal-zenith-warning");
+    warn.style.display = alt > 80 ? "block" : "none";
 });
