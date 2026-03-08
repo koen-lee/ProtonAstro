@@ -34,6 +34,13 @@ public class TelescopeHub : Hub
                 _tracking.State.TargetName, _tracking.State.IsTracking,
                 eq?.RightAscension.Degrees, eq?.Declination.Degrees);
         }
+        else if (await _gcode.QueryRealtimePositionAsync() is { } queried)
+        {
+            await Clients.Caller.SendAsync("PositionUpdate",
+                queried.alt, queried.az,
+                null, false,
+                null, null);
+        }
 
         await base.OnConnectedAsync();
     }

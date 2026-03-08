@@ -18,10 +18,9 @@ public class WatneySolverService(IConfiguration config) : ISolverService
             .UseImageReader<CommonFormatsImageReader>(() => new CommonFormatsImageReader(), "jpg", "jpeg", "png");
 
         ISearchStrategy strategy = hint != null
-            ? new NearbySearchStrategy(new NearbySearchStrategyOptions
+            ? new NearbySearchStrategy(new EquatorialCoords(hint.RaDeg, hint.DecDeg), new NearbySearchStrategyOptions
             {
-                SearchOrigin = new EquatorialCoords(hint.RaDeg, hint.DecDeg),
-                SearchRadius = hint.SearchRadiusDeg,
+                SearchAreaRadiusDegrees = hint.SearchRadiusDeg,
                 UseParallelism = true,
                 MaxNegativeDensityOffset = 2,
                 MaxPositiveDensityOffset = 2
