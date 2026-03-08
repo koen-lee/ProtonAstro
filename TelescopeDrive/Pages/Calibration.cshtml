@@ -1,4 +1,5 @@
 @page
+@model CalibrationModel
 @{
     ViewData["Title"] = "Calibration";
 }
@@ -6,7 +7,70 @@
 <h1>Calibration</h1>
 
 <div class="card">
-    <h2>Star Alignment</h2>
+    <h2>Plate Solve</h2>
+    <p>
+        Snap a photo through the eyepiece with your smartphone, then upload it below.
+        Watney will identify the star field and calibrate the mount's pointing automatically.
+        JPEG, PNG, and FITS are supported.
+    </p>
+
+    <label for="solve-file">Image file:</label>
+    <input type="file" id="solve-file" accept=".jpg,.jpeg,.png,.fit,.fits" />
+
+    <div id="image-preview-wrap" style="display:none; margin-top:0.75rem;">
+        <img id="image-preview" style="max-width:100%; max-height:300px; border-radius:4px;" alt="Preview" />
+    </div>
+
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-solve" class="success" disabled>Plate Solve</button>
+    </div>
+
+    <div id="solve-status" style="display:none; margin-top:0.75rem;"></div>
+</div>
+
+<div class="card" id="solve-result" style="display:none;">
+    <h2>Solution</h2>
+    <div class="position-display">
+        <div>RA: <span class="value" id="sol-ra">--</span></div>
+        <div>Dec: <span class="value" id="sol-dec">--</span></div>
+        <div>Field radius: <span class="value" id="sol-radius">--</span></div>
+        <div>Pixel scale: <span class="value" id="sol-scale">--</span></div>
+        <div>Orientation: <span class="value" id="sol-orientation">--</span></div>
+        <div>Solve time: <span class="value" id="sol-time">--</span></div>
+        <div id="sol-epoch-row" style="display:none;">Photo taken: <span class="value" id="sol-epoch">--</span> <span id="sol-epoch-source" style="opacity:0.6; font-size:0.85em;"></span></div>
+        <div id="sol-altaz-row" style="display:none;">Az: <span class="value" id="sol-az">--</span> &nbsp; Alt: <span class="value" id="sol-alt">--</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-apply" class="success">Apply as Calibration</button>
+    </div>
+</div>
+
+<div class="card warning-box" id="gps-mismatch" style="display:none;">
+    <h2>Location Mismatch</h2>
+    <p>The photo's GPS position differs from the current observer location by more than 0.5°.
+       Update the observer location to match the photo?</p>
+    <div class="position-display">
+        <div>Photo GPS: <span class="value" id="gps-photo-pos">--</span></div>
+        <div>Current observer: <span class="value" id="gps-current-pos">--</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+        <button id="btn-use-gps">Use Photo GPS Location</button>
+    </div>
+</div>
+
+<div class="card" id="solver-cal-result" style="display:none;">
+    <h2>Plate Solve Calibration Applied</h2>
+    <div class="position-display">
+        <div>Set Altitude: <span class="value" id="solver-cal-alt">--</span></div>
+        <div>Set Azimuth: <span class="value" id="solver-cal-az">--</span></div>
+    </div>
+    <div class="btn-row" style="margin-top:1rem;">
+        <a href="/MultiCalibration"><button>Multi-Point Calibration &rarr;</button></a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Manual Star Alignment</h2>
     <p>Point the telescope at a known bright star, then select it below and press Calibrate.
        This tells the firmware where the telescope is actually pointing (G92 offset).</p>
 
@@ -32,14 +96,18 @@
 </div>
 
 <div class="card" id="cal-result" style="display:none;">
-    <h2>Calibration Result</h2>
+    <h2>Manual Calibration Result</h2>
     <div class="position-display">
         <div>Star: <span class="value" id="cal-star-name">--</span></div>
         <div>Set Altitude: <span class="value" id="cal-alt">--</span></div>
         <div>Set Azimuth: <span class="value" id="cal-az">--</span></div>
     </div>
+    <div class="btn-row" style="margin-top:1rem;">
+        <a href="/MultiCalibration"><button>Multi-Point Calibration &rarr;</button></a>
+    </div>
 </div>
 
 @section Scripts {
+    <script src="~/js/solvercalibration.js"></script>
     <script src="~/js/calibration.js"></script>
 }

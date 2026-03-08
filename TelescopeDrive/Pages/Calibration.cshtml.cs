@@ -8,13 +8,13 @@ using TelescopeDrive.Services;
 namespace TelescopeDrive.Pages;
 
 [IgnoreAntiforgeryToken]
-public class SolverCalibrationModel : PageModel
+public class CalibrationModel : PageModel
 {
     private readonly IConfiguration _config;
     private readonly ISolverService _solver;
-    private readonly ILogger<SolverCalibrationModel> _logger;
+    private readonly ILogger<CalibrationModel> _logger;
 
-    public SolverCalibrationModel(IConfiguration config, ISolverService solver, ILogger<SolverCalibrationModel> logger)
+    public CalibrationModel(IConfiguration config, ISolverService solver, ILogger<CalibrationModel> logger)
     {
         _config = config;
         _solver = solver;
@@ -40,7 +40,6 @@ public class SolverCalibrationModel : PageModel
             await using (var fs = System.IO.File.Create(tempPath))
                 await image.CopyToAsync(fs);
 
-            // Extract EXIF before handing the file to the solver
             var meta = ext is "jpg" or "jpeg" or "png"
                 ? ExtractExifMeta(tempPath)
                 : (GpsLat: (double?)null, GpsLon: (double?)null, Epoch: (DateTimeOffset?)null, EpochSource: (string?)null);
@@ -94,7 +93,6 @@ public class SolverCalibrationModel : PageModel
             var exif = img.Metadata.ExifProfile;
             if (exif == null) return (null, null, null, null);
 
-            // GPS coordinates
             double? lat = null, lon = null;
             exif.TryGetValue(ExifTag.GPSLatitude, out var rawLatVal);
             exif.TryGetValue(ExifTag.GPSLatitudeRef, out var latRefVal);
@@ -113,14 +111,13 @@ public class SolverCalibrationModel : PageModel
                 if (lonRef == "W") lon = -lon;
             }
 
-            // Timestamp — prefer GPS date+time (unambiguously UTC) over DateTimeOriginal
             DateTimeOffset? epoch = null;
             string? epochSource = null;
 
             exif.TryGetValue(ExifTag.GPSDateStamp, out var gpsDateVal);
             exif.TryGetValue(ExifTag.GPSTimestamp, out var gpsTimeVal);
-            var gpsDate = gpsDateVal?.Value;  // "YYYY:MM:DD"
-            var gpsTime = gpsTimeVal?.Value;  // Rational[] {H, M, S}
+            var gpsDate = gpsDateVal?.Value;
+            var gpsTime = gpsTimeVal?.Value;
 
             if (gpsDate != null && gpsTime is { Length: 3 })
             {
@@ -144,12 +141,11 @@ public class SolverCalibrationModel : PageModel
                 exif.TryGetValue(ExifTag.DateTimeOriginal, out var dtoVal);
                 exif.TryGetValue(ExifTag.OffsetTimeOriginal, out var offsetVal);
 
-                var dto = dtoVal?.Value;   // "YYYY:MM:DD HH:MM:SS"
-                var off = offsetVal?.Value; // "+HH:MM" or "-HH:MM"
+                var dto = dtoVal?.Value;
+                var off = offsetVal?.Value;
 
                 if (dto != null)
                 {
-                    // Parse EXIF datetime components (colon-separated)
                     var parts = dto.Split(new char[] { ':', ' ' });
                     if (parts.Length == 6 &&
                         int.TryParse(parts[0], out var y) && int.TryParse(parts[1], out var mo) &&

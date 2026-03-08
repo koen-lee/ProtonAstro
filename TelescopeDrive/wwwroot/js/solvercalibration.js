@@ -7,8 +7,9 @@ const previewWrap  = document.getElementById("image-preview-wrap");
 const solveStatus  = document.getElementById("solve-status");
 const solveResult  = document.getElementById("solve-result");
 const gpsMismatch  = document.getElementById("gps-mismatch");
-const calResult    = document.getElementById("cal-result");
+const calResult    = document.getElementById("solver-cal-result");
 
+let pendingApply      = false;
 let solvedRa          = null;
 let solvedDec         = null;
 let solvedEpoch       = null;   // DateTimeOffset ISO string from server, or null
@@ -111,8 +112,9 @@ btnSolve.addEventListener("click", async () => {
 // ── Apply calibration ──────────────────────────────────────────────────────
 btnApply.addEventListener("click", () => {
     if (solvedRa === null || solvedDec === null) return;
+    pendingApply = true;
     connection.invoke("CalibrateRaDec", solvedRa, solvedDec, solvedEpoch)
-        .catch(err => console.error(err));
+        .catch(err => { pendingApply = false; console.error(err); });
 });
 
 // ── Use photo GPS as observer location ─────────────────────────────────────
@@ -124,9 +126,11 @@ btnUseGps.addEventListener("click", () => {
 });
 
 connection.on("CalibrationComplete", (_label, alt, az) => {
+    if (!pendingApply) return;
+    pendingApply = false;
     calResult.style.display = "block";
-    document.getElementById("cal-alt").textContent = alt.toFixed(4) + "\u00b0";
-    document.getElementById("cal-az").textContent  = az.toFixed(4)  + "\u00b0";
+    document.getElementById("solver-cal-alt").textContent = alt.toFixed(4) + "\u00b0";
+    document.getElementById("solver-cal-az").textContent  = az.toFixed(4)  + "\u00b0";
 
     document.getElementById("sol-az").textContent  = az.toFixed(4)  + "\u00b0";
     document.getElementById("sol-alt").textContent = alt.toFixed(4) + "\u00b0";
