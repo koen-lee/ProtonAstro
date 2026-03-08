@@ -46,24 +46,38 @@ public class TrackingState
     {
         var startHour = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, 0, 0, now.Offset);
         return Enumerable.Range(-12, 25)
-            .Select(h => startHour.AddHours(h))
-            .Select(t => GetTargetPosition(t, observer))
-            .Where(p => p.Altitude.Degrees >= 0)
-            .Select(p => new AltAzDeg(p.Altitude.Degrees, p.Azimuth.Degrees))
+            .Select(h => (Hour: startHour.AddHours(h), H: h))
+            .Select(x => (Pos: GetTargetPosition(x.Hour, observer), Label: x.Hour.ToString("HH:mm") + " UTC"))
+            .Where(x => x.Pos.Altitude.Degrees >= 0)
+            .Select(x => new AltAzDeg(x.Pos.Altitude.Degrees, x.Pos.Azimuth.Degrees, x.Label))
             .ToArray();
     }
+
+    private static readonly (string Name, EquatorialCoordinate Coord)[] OrientationStarData =
+    [
+        ("Gacrux",  Constellations.SouthernCross[0]),
+        ("Acrux",   Constellations.SouthernCross[1]),
+        ("Imai",    Constellations.SouthernCross[2]),
+        ("Mimosa",  Constellations.SouthernCross[3]),
+        ("Dubhe",   Constellations.BigDipper[0]),
+        ("Merak",   Constellations.BigDipper[1]),
+        ("Phecda",  Constellations.BigDipper[2]),
+        ("Megrez",  Constellations.BigDipper[3]),
+        ("Alioth",  Constellations.BigDipper[4]),
+        ("Mizar",   Constellations.BigDipper[5]),
+        ("Alkaid",  Constellations.BigDipper[6]),
+    ];
 
     /// <summary>
     /// Current alt/az positions for Southern Cross and Big Dipper stars, above-horizon only.
     /// </summary>
     public static AltAzDeg[] GetOrientationStars(DateTimeOffset now, WGS84Coordinate observer)
-        => Constellations.SouthernCross
-            .Concat(Constellations.BigDipper)
-            .Select(c => c.GetHorizontalCoordinate(now, observer))
-            .Where(p => p.Altitude.Degrees >= 0)
-            .Select(p => new AltAzDeg(p.Altitude.Degrees, p.Azimuth.Degrees))
+        => OrientationStarData
+            .Select(s => (s.Name, Pos: s.Coord.GetHorizontalCoordinate(now, observer)))
+            .Where(s => s.Pos.Altitude.Degrees >= 0)
+            .Select(s => new AltAzDeg(s.Pos.Altitude.Degrees, s.Pos.Azimuth.Degrees, s.Name))
             .ToArray();
 }
 
-/// <summary>Horizontal position for SignalR wire serialization (camelCase: alt, az).</summary>
-public record AltAzDeg(double Alt, double Az);
+/// <summary>Horizontal position for SignalR wire serialization (camelCase: alt, az, label).</summary>
+public record AltAzDeg(double Alt, double Az, string Label);

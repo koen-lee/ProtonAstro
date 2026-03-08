@@ -82,7 +82,7 @@ function updateSkyDots(groupId, points, cssClass, radius) {
     while (g.firstChild) g.removeChild(g.firstChild);
     if (!points) return;
     const svgNS = "http://www.w3.org/2000/svg";
-    for (const { alt, az } of points) {
+    for (const { alt, az, label } of points) {
         const r = 80 * (1 - alt / 90);
         const angle = (az - 90) * Math.PI / 180;
         const dot = document.createElementNS(svgNS, "circle");
@@ -90,6 +90,11 @@ function updateSkyDots(groupId, points, cssClass, radius) {
         dot.setAttribute("cy", 90 + r * Math.sin(angle));
         dot.setAttribute("r", radius);
         dot.setAttribute("class", cssClass);
+        if (label) {
+            const title = document.createElementNS(svgNS, "title");
+            title.textContent = label;
+            dot.appendChild(title);
+        }
         g.appendChild(dot);
     }
 }
