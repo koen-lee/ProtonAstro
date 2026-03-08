@@ -22,7 +22,7 @@ public class TelescopeHub : Hub
 
     public override async Task OnConnectedAsync()
     {
-        await Clients.Caller.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort);
+        await Clients.Caller.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort, _serial.IsSimulated);
         await Clients.Caller.SendAsync("TrackingStatus", _tracking.State.IsTracking);
         await Clients.Caller.SendAsync("AlignmentModelStatus", _alignment.Points.Count);
 
@@ -149,14 +149,14 @@ public class TelescopeHub : Hub
     public async Task Connect(string port, int baud)
     {
         await _serial.ConnectAsync(port, baud);
-        await Clients.All.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort);
+        await Clients.All.SendAsync("ConnectionStatus", _serial.IsConnected, _serial.CurrentPort, _serial.IsSimulated);
     }
 
     public async Task Disconnect()
     {
         _tracking.StopTracking();
         await _serial.DisconnectAsync();
-        await Clients.All.SendAsync("ConnectionStatus", false, null);
+        await Clients.All.SendAsync("ConnectionStatus", false, null, false);
         await Clients.All.SendAsync("TrackingStatus", false);
     }
 

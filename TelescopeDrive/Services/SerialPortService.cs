@@ -14,6 +14,7 @@ public class SerialPortService : ISerialPortService, IDisposable
     }
 
     public bool IsConnected => _port?.IsOpen == true;
+    public bool IsSimulated => false;
     public string? CurrentPort => _port?.PortName;
     public IReadOnlyList<string> AvailablePorts => SerialPort.GetPortNames();
 

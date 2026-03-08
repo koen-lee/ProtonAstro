@@ -53,6 +53,7 @@ nav a:hover, nav a.active { color: var(--text); background: var(--primary); }
 
 .status.connected { background: var(--success); color: #000; }
 .status.disconnected { background: var(--accent); color: #fff; }
+.status.simulated { background: var(--primary); color: var(--text); border: 1px solid var(--text-dim); }
 
 main {
     max-width: 900px;

@@ -3,6 +3,7 @@ namespace TelescopeDrive.Services;
 public interface ISerialPortService
 {
     bool IsConnected { get; }
+    bool IsSimulated { get; }
     string? CurrentPort { get; }
     IReadOnlyList<string> AvailablePorts { get; }
     Task ConnectAsync(string portName, int baudRate);

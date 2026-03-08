@@ -8,13 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<ObserverConfig>(
     builder.Configuration.GetSection("Observer"));
 
-builder.Services.AddSingleton<ISerialPortService, SerialPortService>();
-
 var serialPort = builder.Configuration.GetValue<string>("Observer:SerialPort") ?? "";
 if (serialPort.Equals("simulated", StringComparison.OrdinalIgnoreCase))
-    builder.Services.AddSingleton<IGCodeService, SimulatedGCodeService>();
+    builder.Services.AddSingleton<ISerialPortService, SimulatedSerialPortService>();
 else
-    builder.Services.AddSingleton<IGCodeService, GCodeService>();
+    builder.Services.AddSingleton<ISerialPortService, SerialPortService>();
+builder.Services.AddSingleton<IGCodeService, GCodeService>();
 builder.Services.AddSingleton<ISolverService, WatneySolverService>();
 builder.Services.AddSingleton<ITrackingService, TrackingService>();
 builder.Services.AddSingleton<IAlignmentModel, AlignmentModel>();

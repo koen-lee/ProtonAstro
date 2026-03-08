@@ -5,19 +5,32 @@ const connection = new signalR.HubConnectionBuilder()
     .build();
 
 // Connection status indicator (in nav)
-function updateConnectionIndicator(connected, portName) {
+function updateConnectionIndicator(driveConnected, portName, isSimulated) {
     const el = document.getElementById("connection-status");
     if (!el) return;
-    if (connected) {
+    if (isSimulated) {
+        el.textContent = "Simulated";
+        el.className = "status simulated";
+    } else if (driveConnected) {
         el.textContent = "Connected: " + portName;
         el.className = "status connected";
     } else {
-        el.textContent = "Disconnected";
+        el.textContent = "No Drive";
         el.className = "status disconnected";
     }
 }
 
 connection.on("ConnectionStatus", updateConnectionIndicator);
+
+connection.onreconnecting(() => {
+    const el = document.getElementById("connection-status");
+    if (el) { el.textContent = "Reconnecting…"; el.className = "status disconnected"; }
+});
+
+connection.onclose(() => {
+    const el = document.getElementById("connection-status");
+    if (el) { el.textContent = "No Backend"; el.className = "status disconnected"; }
+});
 
 // Geolocation: send observer location on connect
 function sendGeolocation() {
