@@ -35,9 +35,18 @@ btnStopTrack.addEventListener("click", () => {
     connection.invoke("StopTracking").catch(err => console.error(err));
 });
 
+function normalizeAlt(alt) {
+    alt = ((alt + 180) % 360 + 360) % 360 - 180; // → [-180, 180]
+    if (alt >  90) return  180 - alt;
+    if (alt < -90) return -180 - alt;
+    return alt;
+}
+
 connection.on("PositionUpdate", (alt, az, targetName, isTracking, raDeg, decDeg, trackingList, orientationStars) => {
+    alt = normalizeAlt(alt);
     document.getElementById("pos-alt").textContent = alt.toFixed(4) + "\u00B0";
     document.getElementById("pos-az").textContent = az.toFixed(4) + "\u00B0";
+    document.getElementById("below-horizon-warning").style.display = alt < 0 ? "block" : "none";
     document.getElementById("pos-target").textContent = targetName || "--";
     document.getElementById("pos-ra").textContent = raDeg != null ? degreesToHMS(raDeg) : "--";
     document.getElementById("pos-dec").textContent = decDeg != null ? degreesToDMS(decDeg) : "--";
