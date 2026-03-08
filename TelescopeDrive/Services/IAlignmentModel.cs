@@ -1,3 +1,4 @@
+using ProtonAstroLib;
 using TelescopeDrive.Models;
 
 namespace TelescopeDrive.Services;
@@ -13,8 +14,8 @@ public interface IAlignmentModel
 
     /// <summary>
     /// IDW-interpolated correction at the given sky position.
-    /// Returns (DeltaAltDeg, DeltaAzDeg) — subtract from desired sky position to get motor command.
+    /// Returns (DeltaAlt, DeltaAz) — subtract from desired sky position to get motor command.
     /// Returns (0, 0) when no points are recorded.
     /// </summary>
-    (double DeltaAltDeg, double DeltaAzDeg) GetCorrection(double altDeg, double azDeg);
+    (Angle DeltaAlt, Angle DeltaAz) GetCorrection(HorizontalCoordinate horizontal);
 }

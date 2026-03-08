@@ -108,15 +108,13 @@ public class TrackingBackgroundService : BackgroundService
 
         // Apply alignment correction to get motor-space targets.
         // Nominal feedrate uses sky-space delta (how fast the celestial target moves).
-        var (corrNowAlt, corrNowAz) = _alignment.GetCorrection(
-            expectedNow.Altitude.Degrees, expectedNow.Azimuth.Degrees);
-        var (corrFutAlt, corrFutAz) = _alignment.GetCorrection(
-            expectedFuture.Altitude.Degrees, expectedFuture.Azimuth.Degrees);
+        var (corrNowAlt, corrNowAz) = _alignment.GetCorrection(expectedNow);
+        var (corrFutAlt, corrFutAz) = _alignment.GetCorrection(expectedFuture);
 
-        var motorNowAlt = expectedNow.Altitude.Degrees - corrNowAlt;
-        var motorNowAz  = expectedNow.Azimuth.Degrees  - corrNowAz;
-        var targetAlt   = expectedFuture.Altitude.Degrees - corrFutAlt;
-        var targetAz    = expectedFuture.Azimuth.Degrees  - corrFutAz;
+        var motorNowAlt = expectedNow.Altitude.Degrees - corrNowAlt.Degrees;
+        var motorNowAz  = expectedNow.Azimuth.Degrees  - corrNowAz.Degrees;
+        var targetAlt   = expectedFuture.Altitude.Degrees - corrFutAlt.Degrees;
+        var targetAz    = expectedFuture.Azimuth.Degrees  - corrFutAz.Degrees;
 
         ct.ThrowIfCancellationRequested();
 
@@ -136,8 +134,10 @@ public class TrackingBackgroundService : BackgroundService
 
         ct.ThrowIfCancellationRequested();
 
-        if (actualPos is var (actualAlt, actualAz))
+        if (actualPos is var (actualAltAngle, actualAzAngle))
         {
+            var actualAlt = actualAltAngle.Degrees;
+            var actualAz  = actualAzAngle.Degrees;
             var errAlt = actualAlt - motorNowAlt;
             var errAz = actualAz - motorNowAz;
             if (errAz > 180) errAz -= 360;

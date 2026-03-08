@@ -108,12 +108,11 @@ public class TrackingService : ITrackingService
         var now = DateTimeOffset.UtcNow;
         var horizontal = State.GetTargetPosition(now, _observer);
 
-        var (corrAlt, corrAz) = _alignment.GetCorrection(
-            horizontal.Altitude.Degrees, horizontal.Azimuth.Degrees);
+        var (corrAlt, corrAz) = _alignment.GetCorrection(horizontal);
 
         await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(
-            horizontal.Altitude.Degrees - corrAlt,
-            horizontal.Azimuth.Degrees  - corrAz));
+            horizontal.Altitude.Degrees - corrAlt.Degrees,
+            horizontal.Azimuth.Degrees  - corrAz.Degrees));
 
         // Store sky-space position so the tracking loop error comparison stays consistent.
         State.LastCommandedPosition = horizontal;

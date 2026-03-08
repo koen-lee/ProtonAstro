@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using ProtonAstroLib;
 using TelescopeDrive.Models;
 
 namespace TelescopeDrive.Services;
@@ -36,7 +37,7 @@ public partial class GCodeService : IGCodeService
         return lastResponse;
     }
 
-    public async Task<(double alt, double az)?> QueryRealtimePositionAsync()
+    public async Task<(Angle alt, Angle az)?> QueryRealtimePositionAsync()
     {
         var response = await _serial.SendLineAsync("M114 R");
         if (response == null) return null;
@@ -51,7 +52,7 @@ public partial class GCodeService : IGCodeService
 
         var x = double.Parse(match.Groups["x"].Value, CultureInfo.InvariantCulture);
         var y = double.Parse(match.Groups["y"].Value, CultureInfo.InvariantCulture);
-        return (x, y);
+        return (Angle.FromDegrees(x), Angle.FromDegrees(y));
     }
 
     [GeneratedRegex(@"X:(?<x>-?[\d.]+)\s+Y:(?<y>-?[\d.]+)")]

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ProtonAstroLib;
 using TelescopeDrive.Models;
 
 namespace TelescopeDrive.Services;
@@ -107,16 +108,16 @@ public sealed class AlignmentModel : IAlignmentModel
         }
     }
 
-    public (double DeltaAltDeg, double DeltaAzDeg) GetCorrection(double altDeg, double azDeg)
+    public (Angle DeltaAlt, Angle DeltaAz) GetCorrection(HorizontalCoordinate horizontal)
     {
         List<AlignmentPoint> snapshot;
         lock (_lock) { snapshot = new List<AlignmentPoint>(_points); }
 
-        if (snapshot.Count == 0) return (0.0, 0.0);
-        if (snapshot.Count == 1) return (snapshot[0].DeltaAltDeg, snapshot[0].DeltaAzDeg);
+        if (snapshot.Count == 0) return (Angle.FromDegrees(0), Angle.FromDegrees(0));
+        if (snapshot.Count == 1) return (Angle.FromDegrees(snapshot[0].DeltaAltDeg), Angle.FromDegrees(snapshot[0].DeltaAzDeg));
 
-        var qAlt = altDeg * Math.PI / 180.0;
-        var qAz  = azDeg  * Math.PI / 180.0;
+        var qAlt = (double)horizontal.Altitude;
+        var qAz  = (double)horizontal.Azimuth;
 
         double weightSum = 0.0;
         double altSum    = 0.0;
@@ -135,7 +136,7 @@ public sealed class AlignmentModel : IAlignmentModel
             var d = Math.Acos(cosD);
 
             if (d < EpsilonRad)
-                return (p.DeltaAltDeg, p.DeltaAzDeg);
+                return (Angle.FromDegrees(p.DeltaAltDeg), Angle.FromDegrees(p.DeltaAzDeg));
 
             var w = 1.0 / (d * d);
             weightSum += w;
@@ -149,6 +150,6 @@ public sealed class AlignmentModel : IAlignmentModel
         var corrAlt = altSum / weightSum;
         var corrAz  = Math.Atan2(azSinSum / weightSum, azCosSum / weightSum) * 180.0 / Math.PI;
 
-        return (corrAlt, corrAz);
+        return (Angle.FromDegrees(corrAlt), Angle.FromDegrees(corrAz));
     }
 }

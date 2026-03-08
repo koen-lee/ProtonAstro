@@ -26,23 +26,29 @@ public class TelescopeHub : Hub
         await Clients.Caller.SendAsync("TrackingStatus", _tracking.State.IsTracking);
         await Clients.Caller.SendAsync("AlignmentModelStatus", _alignment.Points.Count);
 
-        if (_tracking.State.LastCommandedPosition is { } pos)
-        {
-            var eq = _tracking.State.TargetFunc?.Invoke(DateTimeOffset.UtcNow);
-            await Clients.Caller.SendAsync("PositionUpdate",
-                pos.Altitude.Degrees, pos.Azimuth.Degrees,
-                _tracking.State.TargetName, _tracking.State.IsTracking,
-                eq?.RightAscension.Degrees, eq?.Declination.Degrees);
-        }
-        else if (await _gcode.QueryRealtimePositionAsync() is { } queried)
-        {
-            await Clients.Caller.SendAsync("PositionUpdate",
-                queried.alt, queried.az,
-                null, false,
-                null, null);
-        }
+        await BroadcastPositionAsync(Clients.Caller);
 
         await base.OnConnectedAsync();
+    }
+
+    private async Task BroadcastPositionAsync(IClientProxy target)
+    {       
+        if (await _gcode.QueryRealtimePositionAsync() is { } queried)
+        {
+            var now = DateTimeOffset.UtcNow;
+           
+            var (corrAlt, corrAz) = _alignment.GetCorrection(new HorizontalCoordinate(queried.alt, queried.az));
+            // this is not actually the inverse correction, but it's a useful approximation because corrections are small and the coordinate transform is mostly linear over small angles
+            var horizontalSky = new HorizontalCoordinate(
+                queried.alt + corrAlt,
+                queried.az + corrAz);
+
+            var eq = horizontalSky.ToEquatorialCoordinate(now, _tracking.Observer);
+            await target.SendAsync("PositionUpdate",
+                queried.alt.Degrees, queried.az.Degrees,
+                _tracking.State.TargetName, _tracking.State.IsTracking,
+                eq.RightAscension.Degrees, eq.Declination.Degrees);
+        }
     }
 
     public async Task SendGCode(string gcode)
@@ -65,6 +71,7 @@ public class TelescopeHub : Hub
             _tracking.SetTarget(_ => coord, entry.Name);
         }
         await _tracking.GotoAsync();
+        await BroadcastPositionAsync(Clients.All);
     }
 
     public async Task GotoCustom(string ra, string dec)
@@ -72,6 +79,7 @@ public class TelescopeHub : Hub
         var coord = EquatorialCoordinate.FromRaDec(ra, dec);
         _tracking.SetTarget(_ => coord, $"Custom ({ra}, {dec})");
         await _tracking.GotoAsync();
+        await BroadcastPositionAsync(Clients.All);
     }
 
     public async Task StartTracking()
@@ -108,6 +116,7 @@ public class TelescopeHub : Hub
             _ => (0.0, 0.0),
         };
         await _tracking.JogAsync(dAlt, dAz);
+        await BroadcastPositionAsync(Clients.All);
     }
 
     public void AdoptPosition()
