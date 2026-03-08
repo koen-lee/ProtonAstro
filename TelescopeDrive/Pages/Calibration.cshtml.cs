@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using ProtonAstroLib;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using TelescopeDrive.Services;
@@ -12,16 +13,24 @@ public class CalibrationModel : PageModel
 {
     private readonly IConfiguration _config;
     private readonly ISolverService _solver;
+    private readonly ITrackingService _tracking;
     private readonly ILogger<CalibrationModel> _logger;
 
-    public CalibrationModel(IConfiguration config, ISolverService solver, ILogger<CalibrationModel> logger)
+    public CalibrationModel(IConfiguration config, ISolverService solver, ITrackingService tracking, ILogger<CalibrationModel> logger)
     {
         _config = config;
         _solver = solver;
+        _tracking = tracking;
         _logger = logger;
     }
 
-    public async Task<IActionResult> OnPostSolveAsync(IFormFile image)
+    /// <param name="image">The image file to plate-solve.</param>
+    /// <param name="hintAltDeg">
+    /// Optional survey point altitude (degrees). When provided together with
+    /// <paramref name="hintAzDeg"/>, a fast nearby search is used instead of a blind solve.
+    /// </param>
+    /// <param name="hintAzDeg">Optional survey point azimuth (degrees).</param>
+    public async Task<IActionResult> OnPostSolveAsync(IFormFile image, double? hintAltDeg, double? hintAzDeg)
     {
         if (image == null || image.Length == 0)
             return new JsonResult(new { success = false, error = "No image provided." });
@@ -32,7 +41,6 @@ public class CalibrationModel : PageModel
 
         var ext = Path.GetExtension(image.FileName).ToLowerInvariant().TrimStart('.');
         var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + "." + ext);
-
         TimeSpan timeout = TimeSpan.FromSeconds(30);
 
         try
@@ -40,19 +48,30 @@ public class CalibrationModel : PageModel
             await using (var fs = System.IO.File.Create(tempPath))
                 await image.CopyToAsync(fs);
 
-            var meta = ext is "jpg" or "jpeg" or "png"
+            var (GpsLat, GpsLon, Epoch, EpochSource) = ext is "jpg" or "jpeg" or "png"
                 ? ExtractExifMeta(tempPath)
                 : (GpsLat: (double?)null, GpsLon: (double?)null, Epoch: (DateTimeOffset?)null, EpochSource: (string?)null);
 
+            var (imageEpoch, epochSource) = Epoch.HasValue
+                ? (Epoch.Value, EpochSource)
+                : (fallbackTimestamp, "Request timestamp (inaccurate)");
+
+            // Build a nearby-search hint from the survey point alt/az if provided.
+            SolveHint? hint = null;
+            if (hintAltDeg.HasValue && hintAzDeg.HasValue)
+            {
+                var horizontal = new HorizontalCoordinate(
+                    Angle.FromDegrees(hintAltDeg.Value),
+                    Angle.FromDegrees(hintAzDeg.Value));
+                var eq = horizontal.ToEquatorialCoordinate(imageEpoch, _tracking.Observer);
+                hint = new SolveHint(eq.RightAscension.Degrees, eq.Declination.Degrees);
+                timeout = TimeSpan.FromSeconds(15);
+            }
             using var cts = new CancellationTokenSource(timeout);
-            var result = await _solver.SolveAsync(tempPath, cts.Token);
+            var result = await _solver.SolveAsync(tempPath, hint, cts.Token);
 
             if (result == null)
                 return new JsonResult(new { success = false, error = "No plate solution found." });
-
-            var (imageEpoch, epochSource) = meta.Epoch.HasValue
-                ? (meta.Epoch, meta.EpochSource)
-                : (fallbackTimestamp, "Request timestamp (inaccurate)");
 
             return new JsonResult(new
             {
@@ -65,8 +84,8 @@ public class CalibrationModel : PageModel
                 timeSpent = result.TimeSpent.TotalSeconds,
                 imageEpoch,
                 epochSource,
-                gpsLat = meta.GpsLat,
-                gpsLon = meta.GpsLon
+                gpsLat = GpsLat,
+                gpsLon = GpsLon
             });
         }
         catch (OperationCanceledException)

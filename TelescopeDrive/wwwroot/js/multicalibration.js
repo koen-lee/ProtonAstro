@@ -125,8 +125,10 @@ btnSolve.addEventListener("click", async () => {
     try {
         const form = new FormData();
         form.append("image", file);
+        if (pendingSolveAlt !== null) form.append("hintAltDeg", pendingSolveAlt);
+        if (pendingSolveAz  !== null) form.append("hintAzDeg",  pendingSolveAz);
 
-        const resp = await fetch("/SolverCalibration?handler=Solve",
+        const resp = await fetch("/Calibration?handler=Solve",
             { method: "POST", body: form });
         const data = await resp.json();
 
