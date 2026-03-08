@@ -8,14 +8,16 @@ public class TrackingService : ITrackingService
 {
     private readonly IGCodeService _gcode;
     private readonly IAlignmentModel _alignment;
+    private readonly IClock _clock;
     private readonly ILogger<TrackingService> _logger;
     private WGS84Coordinate _observer;
     private CancellationTokenSource _tickInterruptCts = new();
 
-    public TrackingService(IGCodeService gcode, IAlignmentModel alignment, IOptions<ObserverConfig> config, ILogger<TrackingService> logger)
+    public TrackingService(IGCodeService gcode, IAlignmentModel alignment, IClock clock, IOptions<ObserverConfig> config, ILogger<TrackingService> logger)
     {
         _gcode = gcode;
         _alignment = alignment;
+        _clock = clock;
         _logger = logger;
         _observer = config.Value.ToWGS84();
     }
@@ -68,7 +70,7 @@ public class TrackingService : ITrackingService
         if (State.TargetFunc == null) return;
         if (State.JogOffsetAltDeg == 0 && State.JogOffsetAzDeg == 0) return;
 
-        var now = DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
         var observer = _observer;
 
         // Get the current effective horizontal position (ephemeris + jog offset)
@@ -105,7 +107,7 @@ public class TrackingService : ITrackingService
     {
         if (State.TargetFunc == null) return;
 
-        var now = DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
         var horizontal = State.GetTargetPosition(now, _observer);
 
         var (corrAlt, corrAz) = _alignment.GetCorrection(horizontal);

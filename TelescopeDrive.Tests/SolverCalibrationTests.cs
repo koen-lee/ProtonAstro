@@ -62,7 +62,7 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
         imageContent.Headers.ContentType = new("image/jpeg");
         form.Add(imageContent, "image", "sample.jpg");
 
-        var httpResponse = await client.PostAsync("/SolverCalibration?handler=Solve", form);
+        var httpResponse = await client.PostAsync("/Calibration?handler=Solve", form);
         httpResponse.EnsureSuccessStatusCode();
 
         using var json = JsonDocument.Parse(await httpResponse.Content.ReadAsStringAsync());
@@ -102,6 +102,39 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
         Assert.Contains($"{dec:F4}", label);
         Assert.True(double.IsFinite(alt), "Expected a finite altitude");
         Assert.True(double.IsFinite(az), "Expected a finite azimuth");
+    }
+
+    /// <summary>
+    /// SetClockOffset: server acknowledges the new time and the reported server time
+    /// reflects the requested offset.
+    /// </summary>
+    [Fact]
+    public async Task SetClockOffset_BroadcastsAdjustedServerTime()
+    {
+        var hubUrl = new Uri(_factory.Server.BaseAddress, "/hubs/telescope");
+        await using var hub = new HubConnectionBuilder()
+            .WithUrl(hubUrl, opts => opts.HttpMessageHandlerFactory = _ => _factory.Server.CreateHandler())
+            .Build();
+
+        var tcs = new TaskCompletionSource<long>(TaskCreationOptions.RunContinuationsAsynchronously);
+        hub.On<long>("ClockOffsetApplied", serverUtcMs => tcs.TrySetResult(serverUtcMs));
+
+        await hub.StartAsync();
+
+        // Pretend the browser clock is 2 minutes ahead of real UTC
+        var offsetMs = (long)TimeSpan.FromMinutes(2).TotalMilliseconds;
+        var browserUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + offsetMs;
+
+        await hub.InvokeAsync("SetClockOffset", browserUtcMs);
+
+        var winner = await Task.WhenAny(tcs.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+        Assert.True(winner == tcs.Task, "ClockOffsetApplied was not received within 5 seconds");
+
+        var returnedServerUtcMs = await tcs.Task;
+        var skewMs = Math.Abs(returnedServerUtcMs - browserUtcMs);
+        // Allow 2 seconds of execution tolerance
+        Assert.True(skewMs < 2_000,
+            $"Expected server time near {browserUtcMs} ms, got {returnedServerUtcMs} ms (skew {skewMs} ms)");
     }
 }
 

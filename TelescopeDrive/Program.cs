@@ -13,6 +13,8 @@ if (serialPort.Equals("simulated", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton<ISerialPortService, SimulatedSerialPortService>();
 else
     builder.Services.AddSingleton<ISerialPortService, SerialPortService>();
+builder.Services.AddSingleton<ClockService>();
+builder.Services.AddSingleton<IClock>(sp => sp.GetRequiredService<ClockService>());
 builder.Services.AddSingleton<IGCodeService, GCodeService>();
 builder.Services.AddSingleton<ISolverService, WatneySolverService>();
 builder.Services.AddSingleton<ITrackingService, TrackingService>();

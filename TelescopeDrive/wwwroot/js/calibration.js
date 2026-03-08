@@ -10,6 +10,17 @@ fetch(location.href, { method: "HEAD" }).then(r => {
     document.getElementById("clock-browser-time").textContent = browserTime.toUTCString();
 });
 
+document.getElementById("btn-apply-clock-offset").addEventListener("click", () => {
+    connection.invoke("SetClockOffset", Date.now()).catch(err => console.error(err));
+});
+
+connection.on("ClockOffsetApplied", serverUtcMs => {
+    const newServerTime = new Date(serverUtcMs);
+    document.getElementById("clock-server-time").textContent = newServerTime.toUTCString();
+    const skewMs = Math.abs(Date.now() - serverUtcMs);
+    document.getElementById("clock-skew-warning").style.display = skewMs > 30_000 ? "block" : "none";
+});
+
 document.getElementById("btn-calibrate").addEventListener("click", () => {
     const star = document.getElementById("cal-star").value;
     if (!star) return;

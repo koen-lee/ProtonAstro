@@ -27,6 +27,7 @@ public class TrackingBackgroundService : BackgroundService
     private readonly IGCodeService _gcode;
     private readonly IHubContext<TelescopeHub> _hub;
     private readonly IAlignmentModel _alignment;
+    private readonly IClock _clock;
     private readonly IOptions<ObserverConfig> _config;
     private readonly ILogger<TrackingBackgroundService> _logger;
 
@@ -35,6 +36,7 @@ public class TrackingBackgroundService : BackgroundService
         IGCodeService gcode,
         IHubContext<TelescopeHub> hub,
         IAlignmentModel alignment,
+        IClock clock,
         IOptions<ObserverConfig> config,
         ILogger<TrackingBackgroundService> logger)
     {
@@ -42,6 +44,7 @@ public class TrackingBackgroundService : BackgroundService
         _gcode = gcode;
         _hub = hub;
         _alignment = alignment;
+        _clock = clock;
         _config = config;
         _logger = logger;
     }
@@ -93,7 +96,7 @@ public class TrackingBackgroundService : BackgroundService
         var ct = linked.Token;
 
         var state = _tracking.State;
-        var now = DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
         var observer = _tracking.Observer;
         // add a small buffer to ensure the move does not complete before the next tick
         // we don't want the controller to be idle at all, or it might start decelerating and cause jerkiness

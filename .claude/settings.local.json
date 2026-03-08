@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(dotnet test TelescopeDrive.Tests/TelescopeDrive.Tests.csproj --filter \"AlignmentModel\" --no-build)",
-      "Bash(dotnet test TelescopeDrive.Tests/TelescopeDrive.Tests.csproj --filter \"AlignmentModel\" -c Release)"
+      "Bash(dotnet test TelescopeDrive.Tests/TelescopeDrive.Tests.csproj --filter \"AlignmentModel\" -c Release)",
+      "Bash(dotnet test TelescopeDrive.Tests/TelescopeDrive.Tests.csproj --verbosity quiet)",
+      "Bash(dotnet test TelescopeDrive.Tests/TelescopeDrive.Tests.csproj -c Release --verbosity quiet)",
+      "Bash(dotnet test \"c:/Dev/ProtonAstro/TelescopeDrive.Tests/TelescopeDrive.Tests.csproj\" -c Release --verbosity normal)",
+      "Bash(dotnet test \"c:/Dev/ProtonAstro/TelescopeDrive.Tests/TelescopeDrive.Tests.csproj\" -c Release --verbosity quiet)"
     ]
   }
 }

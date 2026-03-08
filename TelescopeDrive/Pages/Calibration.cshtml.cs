@@ -14,13 +14,15 @@ public class CalibrationModel : PageModel
     private readonly IConfiguration _config;
     private readonly ISolverService _solver;
     private readonly ITrackingService _tracking;
+    private readonly IClock _clock;
     private readonly ILogger<CalibrationModel> _logger;
 
-    public CalibrationModel(IConfiguration config, ISolverService solver, ITrackingService tracking, ILogger<CalibrationModel> logger)
+    public CalibrationModel(IConfiguration config, ISolverService solver, ITrackingService tracking, IClock clock, ILogger<CalibrationModel> logger)
     {
         _config = config;
         _solver = solver;
         _tracking = tracking;
+        _clock = clock;
         _logger = logger;
     }
 
@@ -34,7 +36,7 @@ public class CalibrationModel : PageModel
     {
         if (image == null || image.Length == 0)
             return new JsonResult(new { success = false, error = "No image provided." });
-        var fallbackTimestamp = DateTimeOffset.UtcNow;
+        var fallbackTimestamp = _clock.UtcNow;
         var dbPath = _config["PlateSolver:QuadDatabasePath"];
         if (string.IsNullOrWhiteSpace(dbPath))
             return new JsonResult(new { success = false, error = "PlateSolver:QuadDatabasePath is not configured in appsettings.json." });

@@ -11,13 +11,15 @@ public class TelescopeHub : Hub
     private readonly IGCodeService _gcode;
     private readonly ISerialPortService _serial;
     private readonly IAlignmentModel _alignment;
+    private readonly IClock _clock;
 
-    public TelescopeHub(ITrackingService tracking, IGCodeService gcode, ISerialPortService serial, IAlignmentModel alignment)
+    public TelescopeHub(ITrackingService tracking, IGCodeService gcode, ISerialPortService serial, IAlignmentModel alignment, IClock clock)
     {
         _tracking = tracking;
         _gcode = gcode;
         _serial = serial;
         _alignment = alignment;
+        _clock = clock;
     }
 
     public override async Task OnConnectedAsync()
@@ -38,7 +40,7 @@ public class TelescopeHub : Hub
     {
         if (await _gcode.QueryRealtimePositionAsync() is { } queried)
         {
-            var now = DateTimeOffset.UtcNow;
+            var now = _clock.UtcNow;
 
             var (corrAlt, corrAz) = _alignment.GetCorrection(new HorizontalCoordinate(queried.alt, queried.az));
             // this is not actually the inverse correction, but it's a useful approximation because corrections are small and the coordinate transform is mostly linear over small angles
@@ -142,7 +144,7 @@ public class TelescopeHub : Hub
             Angle.FromDegrees(ra),
             Angle.FromDegrees(dec));
 
-        var now = imageEpoch ?? DateTimeOffset.UtcNow;
+        var now = imageEpoch ?? _clock.UtcNow;
         var horizontal = coord.GetHorizontalCoordinate(now, _tracking.Observer);
 
         await _gcode.SendCommandAsync(GCodeCommand.SetPosition(
@@ -161,7 +163,7 @@ public class TelescopeHub : Hub
         var entry = CatalogEntries.FindByName(starName);
         if (entry == null) return;
 
-        var now = DateTimeOffset.UtcNow;
+        var now = _clock.UtcNow;
         var horizontal = entry.Coordinate.GetHorizontalCoordinate(now, _tracking.Observer);
 
         await _gcode.SendCommandAsync(GCodeCommand.SetPosition(
@@ -219,7 +221,7 @@ public class TelescopeHub : Hub
         await _gcode.SendCommandAsync(GCodeCommand.AbsoluteMove(altDeg, azDeg));
         _tracking.State.LastCommandedPosition =
             new HorizontalCoordinate(Angle.FromDegrees(altDeg), Angle.FromDegrees(azDeg));
-        _tracking.State.LastUpdateTime = DateTimeOffset.UtcNow;
+        _tracking.State.LastUpdateTime = _clock.UtcNow;
         await Clients.All.SendAsync("SurveyPointReached", altDeg, azDeg);
     }
 
@@ -233,7 +235,7 @@ public class TelescopeHub : Hub
         double expectedAltDeg, double expectedAzDeg,
         DateTimeOffset? imageEpoch = null)
     {
-        var now = imageEpoch ?? DateTimeOffset.UtcNow;
+        var now = imageEpoch ?? _clock.UtcNow;
         var actualCoord = new EquatorialCoordinate(Angle.FromDegrees(ra), Angle.FromDegrees(dec));
         var actualHorizontal = actualCoord.GetHorizontalCoordinate(now, _tracking.Observer);
 
@@ -253,5 +255,17 @@ public class TelescopeHub : Hub
     {
         _alignment.Clear();
         await Clients.All.SendAsync("AlignmentModelCleared");
+    }
+
+    /// <summary>
+    /// Adjusts the application clock so it matches the browser's UTC time.
+    /// Intended for devices without an RTC that have drifted while offline.
+    /// The offset is in-memory only and resets on restart.
+    /// </summary>
+    public async Task SetClockOffset(long browserUtcMs)
+    {
+        var browserTime = DateTimeOffset.FromUnixTimeMilliseconds(browserUtcMs);
+        _clock.SetOffset(browserTime - DateTimeOffset.UtcNow);
+        await Clients.Caller.SendAsync("ClockOffsetApplied", _clock.UtcNow.ToUnixTimeMilliseconds());
     }
 }
