@@ -109,6 +109,6 @@ public class SolverCalibrationTests : IClassFixture<WebApplicationFactory<Progra
 
 file sealed class StubSolverService(SolveResult result) : ISolverService
 {
-    public Task<SolveResult?> SolveAsync(string imagePath, CancellationToken ct = default)
-        => Task.FromResult<SolveResult?>(result);
+    public Task<SolveResult> SolveAsync(string imagePath, SolveHint hint = null, CancellationToken ct = default)
+    => Task.FromResult(result);
 }
