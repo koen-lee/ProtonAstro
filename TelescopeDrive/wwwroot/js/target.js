@@ -35,16 +35,19 @@ btnStopTrack.addEventListener("click", () => {
     connection.invoke("StopTracking").catch(err => console.error(err));
 });
 
-connection.on("PositionUpdate", (alt, az, targetName, isTracking, raDeg, decDeg) => {
+connection.on("PositionUpdate", (alt, az, targetName, isTracking, raDeg, decDeg, trackingList, orientationStars) => {
     document.getElementById("pos-alt").textContent = alt.toFixed(4) + "\u00B0";
     document.getElementById("pos-az").textContent = az.toFixed(4) + "\u00B0";
     document.getElementById("pos-target").textContent = targetName || "--";
     document.getElementById("pos-ra").textContent = raDeg != null ? degreesToHMS(raDeg) : "--";
     document.getElementById("pos-dec").textContent = decDeg != null ? degreesToDMS(decDeg) : "--";
     updateSkyDot(alt, az);
+    updateTrackingDots(trackingList);
+    updateOrientationStars(orientationStars);
 });
 
 function degreesToHMS(deg) {
+    deg = ((deg % 360) + 360) % 360;
     const h = deg / 15;
     const hh = Math.floor(h);
     const mm = Math.floor((h - hh) * 60);
@@ -59,6 +62,27 @@ function degreesToDMS(deg) {
     const mm = Math.floor((abs - dd) * 60);
     const ss = ((abs - dd) * 60 - mm) * 60;
     return `${sign}${String(dd).padStart(2, '0')}\u00B0${String(mm).padStart(2, '0')}'${ss.toFixed(0).padStart(2, '0')}"`;
+}
+
+function updateOrientationStars(stars) { updateSkyDots("orientation-stars", stars, "orientation-star-dot", 1.5); }
+function updateTrackingDots(list)      { updateSkyDots("tracking-hour-dots", list,  "tracking-hour-dot",   3);   }
+
+function updateSkyDots(groupId, points, cssClass, radius) {
+    const g = document.getElementById(groupId);
+    if (!g) return;
+    while (g.firstChild) g.removeChild(g.firstChild);
+    if (!points) return;
+    const svgNS = "http://www.w3.org/2000/svg";
+    for (const { alt, az } of points) {
+        const r = 80 * (1 - alt / 90);
+        const angle = (az - 90) * Math.PI / 180;
+        const dot = document.createElementNS(svgNS, "circle");
+        dot.setAttribute("cx", 90 + r * Math.cos(angle));
+        dot.setAttribute("cy", 90 + r * Math.sin(angle));
+        dot.setAttribute("r", radius);
+        dot.setAttribute("class", cssClass);
+        g.appendChild(dot);
+    }
 }
 
 function updateSkyDot(alt, az) {

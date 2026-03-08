@@ -230,3 +230,12 @@ button.step-btn.active { border: 3px solid var(--accent); background: #1a4a8a; }
     transition: cx 0.3s ease, cy 0.3s ease, opacity 0.3s ease;
 }
 .sky-dot.visible { opacity: 1; }
+.orientation-star-dot {
+    fill: #888;
+    opacity: 0.6;
+}
+.tracking-hour-dot {
+    fill: #cc2222;
+    opacity: 0.75;
+    filter: drop-shadow(0 0 3px #cc2222);
+}

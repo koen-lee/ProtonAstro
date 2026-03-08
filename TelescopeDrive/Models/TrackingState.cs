@@ -37,4 +37,33 @@ public class TrackingState
             horizontal.Altitude + Angle.FromDegrees(JogOffsetAltDeg),
             horizontal.Azimuth + Angle.FromDegrees(JogOffsetAzDeg));
     }
+
+    /// <summary>
+    /// Whole-hour alt/az positions for the tracked target over [-12h, +12h] from now,
+    /// filtered to above-horizon only. Empty when not tracking.
+    /// </summary>
+    public AltAzDeg[] GetTrackingList(DateTimeOffset now, WGS84Coordinate observer)
+    {
+        var startHour = new DateTimeOffset(now.Year, now.Month, now.Day, now.Hour, 0, 0, now.Offset);
+        return Enumerable.Range(-12, 25)
+            .Select(h => startHour.AddHours(h))
+            .Select(t => GetTargetPosition(t, observer))
+            .Where(p => p.Altitude.Degrees >= 0)
+            .Select(p => new AltAzDeg(p.Altitude.Degrees, p.Azimuth.Degrees))
+            .ToArray();
+    }
+
+    /// <summary>
+    /// Current alt/az positions for Southern Cross and Big Dipper stars, above-horizon only.
+    /// </summary>
+    public static AltAzDeg[] GetOrientationStars(DateTimeOffset now, WGS84Coordinate observer)
+        => Constellations.SouthernCross
+            .Concat(Constellations.BigDipper)
+            .Select(c => c.GetHorizontalCoordinate(now, observer))
+            .Where(p => p.Altitude.Degrees >= 0)
+            .Select(p => new AltAzDeg(p.Altitude.Degrees, p.Azimuth.Degrees))
+            .ToArray();
 }
+
+/// <summary>Horizontal position for SignalR wire serialization (camelCase: alt, az).</summary>
+public record AltAzDeg(double Alt, double Az);

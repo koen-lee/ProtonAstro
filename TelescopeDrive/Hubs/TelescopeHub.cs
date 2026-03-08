@@ -32,11 +32,11 @@ public class TelescopeHub : Hub
     }
 
     private async Task BroadcastPositionAsync(IClientProxy target)
-    {       
+    {
         if (await _gcode.QueryRealtimePositionAsync() is { } queried)
         {
             var now = DateTimeOffset.UtcNow;
-           
+
             var (corrAlt, corrAz) = _alignment.GetCorrection(new HorizontalCoordinate(queried.alt, queried.az));
             // this is not actually the inverse correction, but it's a useful approximation because corrections are small and the coordinate transform is mostly linear over small angles
             var horizontalSky = new HorizontalCoordinate(
@@ -44,10 +44,18 @@ public class TelescopeHub : Hub
                 queried.az + corrAz);
 
             var eq = horizontalSky.ToEquatorialCoordinate(now, _tracking.Observer);
+
+            var trackingList = _tracking.State.IsTracking && _tracking.State.TargetFunc != null
+                ? _tracking.State.GetTrackingList(now, _tracking.Observer)
+                : [];
+
+            var orientationStars = TrackingState.GetOrientationStars(now, _tracking.Observer);
+
             await target.SendAsync("PositionUpdate",
                 queried.alt.Degrees, queried.az.Degrees,
                 _tracking.State.TargetName, _tracking.State.IsTracking,
-                eq.RightAscension.Degrees, eq.Declination.Degrees);
+                eq.RightAscension.Degrees, eq.Declination.Degrees,
+                trackingList, orientationStars);
         }
     }
 

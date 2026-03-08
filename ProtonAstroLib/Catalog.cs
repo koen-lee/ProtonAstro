@@ -28,4 +28,30 @@ namespace ProtonAstroLib
         public static readonly EquatorialCoordinate CentaurusA = EquatorialCoordinate.FromRaDec("13:25:28", "-43d01m09s");
 
     }
+
+    public static class Constellations
+    {
+        // Southern Cross (Crux) — traced top-to-bottom then left-to-right
+        // Gacrux → Acrux (vertical bar), Delta Crucis → Mimosa (horizontal bar)
+        public static readonly EquatorialCoordinate[] SouthernCross =
+        [
+            EquatorialCoordinate.FromRaDec("12:31:09.9", "-57d06m48s"), // Gacrux  (γ Cru) — top
+            EquatorialCoordinate.FromRaDec("12:26:35.9", "-63d05m57s"), // Acrux   (α Cru) — bottom
+            EquatorialCoordinate.FromRaDec("12:15:08.7", "-58d44m56s"), // Imai    (δ Cru) — left
+            EquatorialCoordinate.FromRaDec("12:47:43.3", "-59d41m20s"), // Mimosa  (β Cru) — right
+        ];
+
+        // Big Dipper (Ursa Major) — traced bowl then handle
+        // Dubhe → Merak → Phecda → Megrez (bowl), Megrez → Alioth → Mizar → Alkaid (handle)
+        public static readonly EquatorialCoordinate[] BigDipper =
+        [
+            EquatorialCoordinate.FromRaDec("11:03:43.7", "61d45m03s"),  // Dubhe   (α UMa)
+            EquatorialCoordinate.FromRaDec("11:01:50.5", "56d22m57s"),  // Merak   (β UMa)
+            EquatorialCoordinate.FromRaDec("11:53:49.8", "53d41m41s"),  // Phecda  (γ UMa)
+            EquatorialCoordinate.FromRaDec("12:15:25.6", "57d01m57s"),  // Megrez  (δ UMa)
+            EquatorialCoordinate.FromRaDec("12:54:01.7", "55d57m35s"),  // Alioth  (ε UMa)
+            EquatorialCoordinate.FromRaDec("13:23:55.5", "54d55m31s"),  // Mizar   (ζ UMa)
+            EquatorialCoordinate.FromRaDec("13:47:32.4", "49d18m48s"),  // Alkaid  (η UMa)
+        ];
+    }
 }
