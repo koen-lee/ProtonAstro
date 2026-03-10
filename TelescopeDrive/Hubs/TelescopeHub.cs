@@ -196,6 +196,11 @@ public class TelescopeHub : Hub
         await Clients.All.SendAsync("ObserverLocationSet", lat, lon);
     }
 
+    public Task GetObserverLocation() =>
+        Clients.Caller.SendAsync("ObserverLocationSet",
+            _tracking.Observer.Latitude.Degrees,
+            _tracking.Observer.Longitude.Degrees);
+
     public Task GetAvailablePorts()
     {
         return Clients.Caller.SendAsync("AvailablePorts", _serial.AvailablePorts);

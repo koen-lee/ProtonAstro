@@ -118,11 +118,10 @@
             document.getElementById("geo-status").textContent = "";
         });
 
-        // Auto-refresh ports on page load once connected
-        connection.start ? null : connection.invoke("GetAvailablePorts").catch(() => {});
-        // Try to refresh after a short delay to let SignalR connect
-        setTimeout(() => {
+        // hubReady is the start() promise from telescope-hub.js — safe to chain without re-calling start()
+        hubReady.then(() => {
             connection.invoke("GetAvailablePorts").catch(() => {});
-        }, 1000);
+            connection.invoke("GetObserverLocation").catch(() => {});
+        });
     </script>
 }

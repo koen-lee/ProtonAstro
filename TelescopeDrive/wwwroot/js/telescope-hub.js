@@ -32,24 +32,7 @@ connection.onclose(() => {
     if (el) { el.textContent = "No Backend"; el.className = "status disconnected"; }
 });
 
-// Geolocation: send observer location on connect
-function sendGeolocation() {
-    if (!navigator.geolocation) return;
-    navigator.geolocation.getCurrentPosition(
-        pos => {
-            connection.invoke("SetObserverLocation", pos.coords.latitude, pos.coords.longitude)
-                .catch(err => console.warn("Failed to set geolocation:", err));
-        },
-        err => console.warn("Geolocation unavailable:", err.message)
-    );
-}
-
-// Start connection
-connection.start()
-    .then(() => {
-        console.log("SignalR connected");
-        sendGeolocation();
-    })
+// Start connection — exposed so page scripts can chain on it without calling .start() again
+const hubReady = connection.start()
+    .then(() => console.log("SignalR connected"))
     .catch(err => console.error("SignalR connection error:", err));
-
-connection.onreconnected(() => sendGeolocation());
